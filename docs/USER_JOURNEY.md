@@ -21,7 +21,7 @@
 | DOM-driven layout | 3D objects track HTML element rects (responsive flex/grid). | `screenToWorld` helper maps `getBoundingClientRect()` → world space each frame. |
 | Smooth/virtual scroll | Inertia scrolling, scroll progress drives animations. | `lenis` + single rAF loop feeding GSAP `ScrollTrigger`. |
 | Mouse displacement | Rendered WebGL ripples/displaces around the cursor. | Custom fullscreen post-processing pass (radial displacement) via `@react-three/postprocessing`. |
-| Custom cursor | Native cursor hidden; custom dot/ring follows pointer, reacts to hover. | `Cursor.tsx` (only on `pointer:fine`). |
+| Custom cursor | Native cursor hidden; a **fluid dye trail** eases toward the pointer and inverts what's beneath it (`mix-blend-mode: difference`), velocity-reactive, plus a crisp dot. | `Cursor.tsx` (only on `pointer:fine`). Sample: [`self/cursor_trail.png`](./self/cursor_trail.png). |
 | Corner "+" marks | Thin `+` registration marks frame WebGL "windows". | `CornerMarks.tsx`. |
 | Header | `LUSION` wordmark · mute `—` · `LET'S TALK •` pill · `MENU ••` pill. Collapses to wordmark + circular menu button on mobile. | `Header.tsx` + `MenuOverlay.tsx`. |
 | Palette | Light lavender (`~#e9e7ff`) base, cobalt blue (`~#1a25ff`) accent, near-black, off-white; dark sections for the cinematic/CTA. | CSS tokens in `globals.css`. |

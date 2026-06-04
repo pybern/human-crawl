@@ -67,9 +67,9 @@ function buildBodies(count: number, bounds: Bounds): Body[] {
         )
       ),
       ang: new THREE.Vector3(
-        (Math.random() - 0.5) * 2,
-        (Math.random() - 0.5) * 2,
-        (Math.random() - 0.5) * 2
+        (Math.random() - 0.5) * 0.7,
+        (Math.random() - 0.5) * 0.7,
+        (Math.random() - 0.5) * 0.7
       ),
       radius: 0.5 * scale,
       scale,
@@ -221,9 +221,9 @@ function Pile({ count, mobile }: { count: number; mobile: boolean }) {
               const imp = -rel * 0.5;
               a.vel.addScaledVector(_d, imp);
               b.vel.addScaledVector(_d, -imp);
-              // a little tumble on contact
-              a.ang.addScaledVector(_d, imp * 0.6);
-              b.ang.addScaledVector(_d, -imp * 0.6);
+              // a little tumble on contact (kept gentle)
+              a.ang.addScaledVector(_d, imp * 0.2);
+              b.ang.addScaledVector(_d, -imp * 0.2);
             }
           }
         }
@@ -245,19 +245,22 @@ function Pile({ count, mobile }: { count: number; mobile: boolean }) {
             b.vel.addScaledVector(_d, push);
             // amplify with cursor speed (bounded)
             b.vel.addScaledVector(mouseVel.current, 2.2 * (0.4 + speed));
-            b.ang.x += (Math.random() - 0.5) * 3;
-            b.ang.y += (Math.random() - 0.5) * 3;
+            b.ang.x += (Math.random() - 0.5) * 1.1;
+            b.ang.y += (Math.random() - 0.5) * 1.1;
           }
         }
       }
 
       // damping + velocity cap (prevents explosions)
       const MAX_V = 22;
+      const MAX_A = 2.2; // cap angular speed so jacks never spin too fast
       for (const b of bodies) {
         b.vel.multiplyScalar(0.985);
-        b.ang.multiplyScalar(0.9);
+        b.ang.multiplyScalar(0.82); // stronger angular damping -> calmer spin
         const vl = b.vel.lengthSq();
         if (vl > MAX_V * MAX_V) b.vel.multiplyScalar(MAX_V / Math.sqrt(vl));
+        const al = b.ang.lengthSq();
+        if (al > MAX_A * MAX_A) b.ang.multiplyScalar(MAX_A / Math.sqrt(al));
       }
     }
 
