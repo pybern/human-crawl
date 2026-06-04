@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { View, Preload } from "@react-three/drei";
+import { View } from "@react-three/drei";
 import { useApp } from "@/lib/store";
 import { dprCap } from "@/lib/capabilities";
 
@@ -44,7 +44,6 @@ export default function SceneCanvas() {
       }}
     >
       <View.Port />
-      <Preload all />
     </Canvas>
   );
 }

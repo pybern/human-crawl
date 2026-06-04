@@ -7,30 +7,45 @@ import { useApp } from "@/lib/store";
 /**
  * Black entry screen with a glossy "L" mark and a 0 -> 100 counter that tracks
  * real asset/WebGL load progress (drei useProgress), with a minimum on-screen
- * time so the reveal always feels intentional. Fades up to reveal the hero.
+ * time so the reveal feels intentional and a hard cap so it always reveals.
+ * One-shot: once revealed it never returns (even as later sections stream in).
  */
+const MIN_MS = 1400;
+const MAX_MS = 3600;
+
 export default function Preloader() {
   const { active, progress: loaded } = useProgress();
   const setReady = useApp((s) => s.setReady);
   const [count, setCount] = useState(0);
   const [done, setDone] = useState(false);
-  const start = useRef<number>(0);
+
+  // keep latest progress in refs so the loop reads them without restarting
+  const activeRef = useRef(active);
+  const loadedRef = useRef(loaded);
+  useEffect(() => {
+    activeRef.current = active;
+    loadedRef.current = loaded;
+  }, [active, loaded]);
+
+  const finished = useRef(false);
 
   useEffect(() => {
-    start.current = performance.now();
+    if (finished.current) return;
+    const start = performance.now();
     let raf = 0;
-    const MIN_MS = 1600;
     const tick = () => {
-      const elapsed = performance.now() - start.current;
+      const elapsed = performance.now() - start;
       const timeP = Math.min(1, elapsed / MIN_MS) * 100;
-      // Take the lower of (real load) and (min-time) so we never finish early.
-      const real = active ? loaded : 100;
+      const real = activeRef.current ? loadedRef.current : 100;
       const target = Math.min(real, timeP);
       setCount((c) => {
-        const next = c + (target - c) * 0.12;
+        const next = c + (target - c) * 0.14;
         return next > 99.4 ? 100 : next;
       });
-      if (elapsed > MIN_MS && !active) {
+      const settled = elapsed > MIN_MS && !activeRef.current;
+      const capped = elapsed > MAX_MS;
+      if (settled || capped) {
+        finished.current = true;
         setCount(100);
         setDone(true);
         return;
@@ -39,7 +54,7 @@ export default function Preloader() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [active, loaded]);
+  }, []);
 
   useEffect(() => {
     if (!done) return;
@@ -58,7 +73,6 @@ export default function Preloader() {
         pointerEvents: done ? "none" : "auto",
       }}
     >
-      {/* Glossy "L" built from two rounded panels (the jack material motif). */}
       <div
         className="relative"
         style={{
@@ -76,8 +90,7 @@ export default function Preloader() {
             width: "22%",
             height: "78%",
             borderRadius: 12,
-            background:
-              "linear-gradient(150deg,#ffffff,#cfd2ff 55%,#9aa0ff)",
+            background: "linear-gradient(150deg,#ffffff,#cfd2ff 55%,#9aa0ff)",
             boxShadow: "inset 0 6px 18px rgba(255,255,255,.6)",
             transform: done ? "translateY(40px)" : "translateY(0)",
             transition: "transform 0.6s var(--easing)",
@@ -91,8 +104,7 @@ export default function Preloader() {
             width: "55%",
             height: "22%",
             borderRadius: 12,
-            background:
-              "linear-gradient(60deg,#ffffff,#cfd2ff 55%,#9aa0ff)",
+            background: "linear-gradient(60deg,#ffffff,#cfd2ff 55%,#9aa0ff)",
             boxShadow: "inset 0 6px 18px rgba(255,255,255,.6)",
             transform: done ? "translateX(40px)" : "translateX(0)",
             transition: "transform 0.6s var(--easing)",
