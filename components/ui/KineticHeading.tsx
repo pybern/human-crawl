@@ -1,6 +1,6 @@
 "use client";
 
-import { createElement, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useApp } from "@/lib/store";
@@ -48,26 +48,40 @@ export default function KineticHeading({
     return () => ctx.revert();
   }, [reduced, text]);
 
-  return createElement(
-    as,
-    { ref, className },
-    words.map((w, i) => (
+  const inner = words.map((w, i) => (
+    <span
+      key={i}
+      style={{
+        display: "inline-block",
+        overflow: "hidden",
+        verticalAlign: "top",
+      }}
+    >
       <span
-        key={i}
-        style={{
-          display: "inline-block",
-          overflow: "hidden",
-          verticalAlign: "top",
-        }}
+        data-word
+        style={{ display: "inline-block", willChange: "transform" }}
       >
-        <span
-          data-word
-          style={{ display: "inline-block", willChange: "transform" }}
-        >
-          {w}
-        </span>
-        {i < words.length - 1 ? "\u00A0" : ""}
+        {w}
       </span>
-    ))
+      {i < words.length - 1 ? "\u00A0" : ""}
+    </span>
+  ));
+
+  if (as === "h1")
+    return (
+      <h1 ref={ref} className={className}>
+        {inner}
+      </h1>
+    );
+  if (as === "h3")
+    return (
+      <h3 ref={ref} className={className}>
+        {inner}
+      </h3>
+    );
+  return (
+    <h2 ref={ref} className={className}>
+      {inner}
+    </h2>
   );
 }

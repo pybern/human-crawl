@@ -1,6 +1,7 @@
 import Hero from "@/components/sections/Hero";
 import BroughtToLife from "@/components/sections/BroughtToLife";
 import PlayReel from "@/components/sections/PlayReel";
+import FeaturedWork from "@/components/sections/FeaturedWork";
 
 export default function Home() {
   return (
@@ -8,16 +9,9 @@ export default function Home() {
       <Hero />
       <BroughtToLife />
       <PlayReel />
+      <FeaturedWork />
 
       {/* Placeholder sections (built out in later phases) */}
-      <section
-        id="work"
-        className="flex min-h-screen items-center justify-center"
-        style={{ background: "var(--bg-elevated)" }}
-      >
-        <h2 className="font-display text-[8vw]">Featured Work</h2>
-      </section>
-
       <section
         data-theme="dark"
         className="flex min-h-screen items-center justify-center"

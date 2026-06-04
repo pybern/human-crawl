@@ -1,6 +1,6 @@
 "use client";
 
-import { createElement, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useApp } from "@/lib/store";
@@ -15,7 +15,6 @@ type Props = {
   delay?: number;
   /** stagger direct children instead of the wrapper */
   stagger?: boolean;
-  as?: "div" | "section" | "span" | "p" | "ul" | "li";
 };
 
 /**
@@ -28,9 +27,8 @@ export default function Reveal({
   y = 40,
   delay = 0,
   stagger = false,
-  as = "div",
 }: Props) {
-  const ref = useRef<HTMLElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const reduced = useApp((s) => s.reducedMotion);
 
   useEffect(() => {
@@ -65,5 +63,9 @@ export default function Reveal({
     return () => ctx.revert();
   }, [y, delay, stagger, reduced]);
 
-  return createElement(as, { ref, className }, children);
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  );
 }
