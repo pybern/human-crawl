@@ -21,6 +21,9 @@ export default function NewWorld() {
     const section = sectionRef.current;
     if (!section) return;
 
+    // expose progress holder for e2e depth validation (harmless)
+    (window as unknown as { cinema?: typeof cinema }).cinema = cinema;
+
     const st = ScrollTrigger.create({
       trigger: section,
       start: "top top",

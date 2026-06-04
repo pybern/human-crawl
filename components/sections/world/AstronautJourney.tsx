@@ -18,6 +18,21 @@ const SPACE_END = -34;
 const GRID_END = -80;
 const CRYSTAL_END = -122;
 
+// Depth: how far ahead of the camera the astronaut sits, as a function of
+// scroll progress. Oscillating distance makes it dolly toward then away from
+// the lens (it grows and shrinks) — i.e. real depth driven by scroll.
+const NEAR = 3.2; // closest approach (large on screen)
+const FAR = 15; // furthest (small on screen)
+function astronautDepth(p: number): number {
+  const mid = (NEAR + FAR) / 2;
+  const amp = (FAR - NEAR) / 2;
+  // ~1.1 cycles across the scroll so it sweeps far -> near -> far -> near
+  return mid + amp * Math.cos(p * Math.PI * 2.2 + 0.5);
+}
+
+const _v1 = new THREE.Vector3();
+const _v2 = new THREE.Vector3();
+
 export default function AstronautJourney({ mobile = false }: { mobile?: boolean }) {
   const camRef = useRef<THREE.PerspectiveCamera>(null);
   const astro = useRef<THREE.Group>(null);
@@ -39,11 +54,16 @@ export default function AstronautJourney({ mobile = false }: { mobile?: boolean 
     cam.position.set(Math.sin(t * 0.2) * 1.2, Math.cos(t * 0.16) * 0.8, camZ);
     cam.lookAt(Math.sin(t * 0.1) * 1.5, 0, camZ - 12);
 
+    // ---- astronaut depth (distance ahead of the camera) driven by scroll ----
+    const offset = astronautDepth(p);
+    // closeness 0 (far) -> 1 (near): bigger lateral drift when near (parallax)
+    const closeness = THREE.MathUtils.clamp((FAR - offset) / (FAR - NEAR), 0, 1);
     if (astro.current) {
+      const ampXY = 0.6 + closeness * 1.8;
       astro.current.position.set(
-        Math.sin(t * 0.5) * 1.4,
-        Math.cos(t * 0.4) * 0.8,
-        camZ - 7
+        Math.sin(t * 0.5) * ampXY,
+        Math.cos(t * 0.4) * ampXY * 0.7,
+        camZ - offset
       );
       astro.current.rotation.y += delta * 0.25;
       astro.current.rotation.z = Math.sin(t * 0.35) * 0.25;
@@ -55,6 +75,25 @@ export default function AstronautJourney({ mobile = false }: { mobile?: boolean 
         astro.current.position.y + 2,
         astro.current.position.z + 3
       );
+    }
+
+    // ---- depth instrumentation (apparent on-screen size) for validation ----
+    if (astro.current) {
+      const a = astro.current.position;
+      cam.updateMatrixWorld(true);
+      _v1.set(a.x, a.y + 1.6, a.z).project(cam);
+      _v2.set(a.x, a.y - 1.15, a.z).project(cam);
+      const hPx = state.size?.height ?? 1;
+      const sizePx = Math.abs(_v1.y - _v2.y) * 0.5 * hPx;
+      const dist = cam.position.distanceTo(a);
+      (
+        window as unknown as { __astroDepth?: Record<string, number> }
+      ).__astroDepth = {
+        p,
+        offset,
+        dist,
+        sizePx,
+      };
     }
 
     // fog colour by zone
