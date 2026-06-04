@@ -85,7 +85,10 @@ export default function NewWorld() {
       className="relative w-full"
       style={{ height: "520vh", background: "var(--night)" }}
     >
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
+      {/* z-20 lifts the DOM overlays above the global WebGL canvas (z-5) so the
+          journey/CTA copy reads clearly in front of the astronaut. The 3D still
+          shows through the transparent parts of this layer. */}
+      <div className="sticky top-0 z-20 h-screen w-full overflow-hidden">
         {/* shared WebGL scene (single astronaut: cinematic + CTA) */}
         <LazyView
           fallback={
