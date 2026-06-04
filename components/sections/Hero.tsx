@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef } from "react";
-import { View, Float } from "@react-three/drei";
+import { View } from "@react-three/drei";
 import CornerMarks from "@/components/layout/CornerMarks";
 import { useApp } from "@/lib/store";
+import JackPit from "@/components/sections/hero/JackPit";
 
 /**
  * Hero — Phase 1 scaffold.
@@ -14,6 +15,7 @@ import { useApp } from "@/lib/store";
 export default function Hero() {
   const viewRef = useRef<HTMLDivElement>(null);
   const setCursorVariant = useApp((s) => s.setCursorVariant);
+  const isMobile = useApp((s) => s.isMobile);
 
   return (
     <section
@@ -40,7 +42,7 @@ export default function Hero() {
           {/* drei <View> renders its own tracked element + tunnels 3D into the
               shared canvas. Fill the window exactly. */}
           <View className="absolute inset-0 h-full w-full">
-            <PlaceholderScene />
+            <JackPit mobile={isMobile} />
           </View>
           <CornerMarks color="rgba(255,255,255,.5)" inset={14} />
         </div>
@@ -52,26 +54,5 @@ export default function Hero() {
         </span>
       </div>
     </section>
-  );
-}
-
-function PlaceholderScene() {
-  const mesh = useRef<import("three").Mesh>(null);
-  return (
-    <>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[5, 5, 5]} intensity={2.5} />
-      <pointLight position={[-5, -2, 3]} intensity={30} color="#6a78ff" />
-      <Float speed={2} rotationIntensity={1.5} floatIntensity={1.5}>
-        <mesh ref={mesh}>
-          <torusKnotGeometry args={[0.8, 0.28, 160, 32]} />
-          <meshStandardMaterial
-            color="#1a25ff"
-            metalness={0.6}
-            roughness={0.25}
-          />
-        </mesh>
-      </Float>
-    </>
   );
 }

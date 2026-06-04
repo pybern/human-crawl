@@ -48,6 +48,22 @@
 ## Scope decision
 Full faithful clone ≈ 1yr studio effort. Plan = curated reproduction of the **signature journey + effects**, responsive (desktop+mobile), with open-source/placeholder assets (replaceable). Prioritize: preloader, hero jack-pit physics + mouse displacement, kinetic type/scroll, project grid, cinematic astronaut sequence, sticker CTA, footer.
 
+## EXECUTION LOG
+- Phase 0 done & pushed: docs/USER_JOURNEY.md, docs/reference/* (frames+mp4), scripts/capture-reference.mjs, docs/PLAN.md, docs/scratchpad.md.
+- Phase 1 in progress. Deps installed (three/r3f/drei/rapier/postprocessing/lenis/gsap/zustand + @types/three, playwright dev).
+- ARCH DECISION: Use drei `<View>` (single global `<Canvas>` + `<View.Port/>`, sections render `<View track={ref}>`). This is the idiomatic, maintainable way to map 3D→DOM rects (the plan listed View as acceptable). Each View has own scene/camera/lights/env. Mouse-displacement + chromatic/bloom applied PER-VIEW via EffectComposer inside the View(s) that need it (hero, cinematic). Will validate View+EffectComposer in Phase 2; fall back to scoping if needed.
+- Canvas: fixed inset-0, pointerEvents none, eventSource=document.body, eventPrefix="client", gl {alpha,stencil,antialias}. CanvasRoot renders null if !webglOk.
+
+## PHASE 2 LEARNINGS (critical)
+- drei `<View>` v10: `<View className/style>` renders its OWN tracked DOM element + tunnels children into `<View.Port/>`. Passing `track` is IGNORED in the HTML path. Canvas must be layered ABOVE DOM (zIndex 5, pointerEvents none, alpha transparent) so 3D draws over tracked windows; dark window DOM bg sits behind.
+- `Environment preset=...` FETCHES HDR from CDN → suspends/blank in sandbox. Use self-contained `StudioEnv` (drei `<Environment>` + `<Lightformer>` children, resolution 256, frames 1). No network. Gives glossy reflections.
+- **@react-three/rapier is BROKEN inside a drei `<View>` portal**: physics steps (bodies move) but meshes inside `<RigidBody>` DO NOT RENDER (even basic boxes); also Physics WASM suspend caused `WebGLRenderer: Context Lost` unless wrapped in `<Suspense>`. ABANDONED rapier. Removed from hero.
+- HERO SOLUTION: custom lightweight sim (center-attraction like Lusion's "gravitational pull to centre" + sphere-approx repulsion + amplified pointer shove + velocity cap) rendered via ONE `InstancedMesh` (instanceColor per body). Renders reliably in View, 1 draw call. Looks great, matches ref.
+- Jack geometry: 3 perpendicular capped cylinders + center sphere + 6 torus rim tips (tube-end look). `mergeGeometries` from `three/examples/jsm/utils/BufferGeometryUtils.js` (three-stdlib NOT resolvable top-level).
+- NEW LINT RULES (Next16/React19): `react-hooks/immutability` (forbids mutating useMemo values — incompatible with three.js per-frame mutation → disabled for components/canvas, components/sections, lib/three in eslint.config.mjs) and `react-hooks/refs` (no ref writes during render → seed via useMemo + adopt in useEffect).
+- DEFERRED to polish (Phase 7): signature mouse-displacement post-FX + rounded stencil mask on hero window (corners currently rounded via DOM window bg behind transparent canvas — good enough).
+- Self-test harness: /tmp/shot2.mjs (settle+interact), /tmp/dbgall.mjs (all console+errors). Dev server on :3000.
+
 ## Open questions for user
 1. Scope/fidelity vs. time: build ALL sections at medium fidelity, or fewer sections at high fidelity? (Plan assumes all sections, curated fidelity.)
 2. OK to fetch external CC0 assets (astronaut GLTF, sample videos, HDRI) at build/dev time and commit small ones to `public/`? Remote video via next/image remotePatterns OK?
