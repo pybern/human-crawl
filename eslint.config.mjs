@@ -17,6 +17,9 @@ const eslintConfig = defineConfig([
     ],
     rules: {
       "react-hooks/immutability": "off",
+      // Generative 3D seeds content with Math.random() at init (in useMemo /
+      // lazy state) — intentional, deterministic enough for visuals.
+      "react-hooks/purity": "off",
     },
   },
   // Override default ignores of eslint-config-next.

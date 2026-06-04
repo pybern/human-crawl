@@ -65,6 +65,8 @@ export default function AppProviders({
       touchMultiplier: 1.4,
     });
     lenisRef.current = lenis;
+    // expose for debugging / e2e capture (harmless)
+    (window as unknown as { lenis?: Lenis }).lenis = lenis;
 
     lenis.on("scroll", ScrollTrigger.update);
 
