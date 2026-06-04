@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { View } from "@react-three/drei";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import AstronautJourney from "@/components/sections/world/AstronautJourney";
+import LazyView from "@/components/canvas/LazyView";
 import { cinema } from "@/lib/cinema";
 import { useApp } from "@/lib/store";
 
@@ -74,9 +74,19 @@ export default function NewWorld() {
         className="sticky top-0 h-screen w-full overflow-hidden"
       >
         {/* WebGL journey */}
-        <View className="absolute inset-0 h-full w-full">
+        <LazyView
+          fallback={
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(ellipse at center, #0a0c18 0%, #05060a 70%)",
+              }}
+            />
+          }
+        >
           <AstronautJourney mobile={isMobile} />
-        </View>
+        </LazyView>
 
         {/* lens / chromatic vignette */}
         <div

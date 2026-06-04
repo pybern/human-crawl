@@ -1,14 +1,12 @@
 "use client";
 
-import { useRef } from "react";
-import { View } from "@react-three/drei";
 import KineticHeading from "@/components/ui/KineticHeading";
 import CornerMarks from "@/components/layout/CornerMarks";
 import StickerField from "@/components/sections/work/StickerField";
+import LazyView from "@/components/canvas/LazyView";
 import { useApp } from "@/lib/store";
 
 export default function LetsWork() {
-  const viewRef = useRef<HTMLDivElement>(null);
   const isMobile = useApp((s) => s.isMobile);
 
   return (
@@ -19,10 +17,10 @@ export default function LetsWork() {
       style={{ background: "var(--night)", color: "var(--bg-elevated)" }}
     >
       {/* sticker + astronaut field fills the section */}
-      <div ref={viewRef} className="absolute inset-0">
-        <View className="absolute inset-0 h-full w-full">
+      <div className="absolute inset-0">
+        <LazyView>
           <StickerField mobile={isMobile} />
-        </View>
+        </LazyView>
       </div>
 
       <CornerMarks color="rgba(255,255,255,.35)" inset={24} />

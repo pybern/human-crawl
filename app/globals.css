@@ -96,6 +96,13 @@ a {
   text-decoration: none;
 }
 
+/* Keyboard focus stays visible even though we hide the pointer cursor. */
+:focus-visible {
+  outline: 2px solid var(--cobalt);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 h1,
 h2,
 h3,
@@ -111,23 +118,26 @@ h4 {
   color: #fff;
 }
 
-/* Utility: pill button */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 1.15rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  transition: transform 0.4s var(--easing), background 0.4s var(--easing),
-    color 0.4s var(--easing);
-}
-.pill:hover {
-  transform: translateY(-2px);
+/* Pill button — in the components layer so Tailwind utilities (e.g. `hidden`,
+   `md:inline-flex`) still override `display` when needed. */
+@layer components {
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.15rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: transform 0.4s var(--easing), background 0.4s var(--easing),
+      color 0.4s var(--easing);
+  }
+  .pill:hover {
+    transform: translateY(-2px);
+  }
 }
 
 /* Reduced motion */

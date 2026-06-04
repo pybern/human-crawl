@@ -1,14 +1,12 @@
 "use client";
 
-import { useRef } from "react";
-import { View } from "@react-three/drei";
 import KineticHeading from "@/components/ui/KineticHeading";
 import Reveal from "@/components/ui/Reveal";
 import Ribbon from "@/components/sections/visuals/Ribbon";
+import LazyView from "@/components/canvas/LazyView";
 import { useApp } from "@/lib/store";
 
 export default function BroughtToLife() {
-  const viewRef = useRef<HTMLDivElement>(null);
   const setCursorVariant = useApp((s) => s.setCursorVariant);
 
   return (
@@ -25,15 +23,24 @@ export default function BroughtToLife() {
       <div className="mt-10 flex flex-col gap-10 md:mt-16 md:flex-row md:items-end md:justify-between">
         {/* Ribbon window */}
         <div
-          ref={viewRef}
           onMouseEnter={() => setCursorVariant("hover")}
           onMouseLeave={() => setCursorVariant("default")}
           className="relative aspect-square w-full overflow-hidden rounded-[28px] md:w-[46%]"
           style={{ background: "var(--window)" }}
         >
-          <View className="absolute inset-0 h-full w-full">
+          <LazyView
+            fallback={
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(circle at 40% 40%, #2733ff 0%, #11131f 60%, #0b0b12 100%)",
+                }}
+              />
+            }
+          >
             <Ribbon />
-          </View>
+          </LazyView>
         </div>
 
         {/* Copy */}

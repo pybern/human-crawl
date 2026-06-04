@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef } from "react";
-import { View } from "@react-three/drei";
 import CornerMarks from "@/components/layout/CornerMarks";
+import LazyView from "@/components/canvas/LazyView";
 import { useApp } from "@/lib/store";
 import JackPit from "@/components/sections/hero/JackPit";
 
@@ -13,7 +12,6 @@ import JackPit from "@/components/sections/hero/JackPit";
  * geometry for the Rapier "jack pit" + stencil mask + mouse displacement.
  */
 export default function Hero() {
-  const viewRef = useRef<HTMLDivElement>(null);
   const setCursorVariant = useApp((s) => s.setCursorVariant);
   const isMobile = useApp((s) => s.isMobile);
 
@@ -33,17 +31,24 @@ export default function Hero() {
       {/* The WebGL window */}
       <div className="mx-auto mt-8 max-w-[1500px]">
         <div
-          ref={viewRef}
           onMouseEnter={() => setCursorVariant("drag")}
           onMouseLeave={() => setCursorVariant("default")}
           className="relative aspect-[4/5] w-full overflow-hidden rounded-[28px] md:aspect-[16/9]"
           style={{ background: "var(--window)" }}
         >
-          {/* drei <View> renders its own tracked element + tunnels 3D into the
-              shared canvas. Fill the window exactly. */}
-          <View className="absolute inset-0 h-full w-full">
+          <LazyView
+            fallback={
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(circle at 50% 60%, #2733ff 0%, #11131f 55%, #0b0b12 100%)",
+                }}
+              />
+            }
+          >
             <JackPit mobile={isMobile} />
-          </View>
+          </LazyView>
           <CornerMarks color="rgba(255,255,255,.5)" inset={14} />
         </div>
       </div>
