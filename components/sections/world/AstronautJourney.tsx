@@ -19,15 +19,26 @@ const GRID_END = -80;
 const CRYSTAL_END = -122;
 
 // Depth: how far ahead of the camera the astronaut sits, as a function of
-// scroll progress. Oscillating distance makes it dolly toward then away from
-// the lens (it grows and shrinks) — i.e. real depth driven by scroll.
-const NEAR = 3.2; // closest approach (large on screen)
-const FAR = 15; // furthest (small on screen)
+// scroll progress. It starts close-ish, then recedes (gets smaller — "going
+// down in depth") for most of the scroll, and finally POPS forward to the
+// front near the end, handing off to the CTA's astronaut.
+const START = 7; // size at the top of the section
+const FAR = 18; // deepest / smallest
+const NEAR = 3; // popped to the front at the very end
+const POP_AT = 0.78; // progress where the pop-forward begins
+
+const smoother = (x: number) => {
+  const c = THREE.MathUtils.clamp(x, 0, 1);
+  return c * c * c * (c * (c * 6 - 15) + 10);
+};
+
 function astronautDepth(p: number): number {
-  const mid = (NEAR + FAR) / 2;
-  const amp = (FAR - NEAR) / 2;
-  // ~1.1 cycles across the scroll so it sweeps far -> near -> far -> near
-  return mid + amp * Math.cos(p * Math.PI * 2.2 + 0.5);
+  if (p < POP_AT) {
+    // recede into depth (distance grows -> appears smaller)
+    return THREE.MathUtils.lerp(START, FAR, smoother(p / POP_AT));
+  }
+  // pop forward to the front
+  return THREE.MathUtils.lerp(FAR, NEAR, smoother((p - POP_AT) / (1 - POP_AT)));
 }
 
 const _v1 = new THREE.Vector3();
@@ -58,11 +69,18 @@ export default function AstronautJourney({ mobile = false }: { mobile?: boolean 
     const offset = astronautDepth(p);
     // closeness 0 (far) -> 1 (near): bigger lateral drift when near (parallax)
     const closeness = THREE.MathUtils.clamp((FAR - offset) / (FAR - NEAR), 0, 1);
+    // recede 0 (start) -> 1 (deepest): sink downward while drifting into depth,
+    // then rise back to centre as it pops forward.
+    const recede = THREE.MathUtils.clamp(
+      (offset - START) / (FAR - START),
+      0,
+      1
+    );
     if (astro.current) {
       const ampXY = 0.6 + closeness * 1.8;
       astro.current.position.set(
         Math.sin(t * 0.5) * ampXY,
-        Math.cos(t * 0.4) * ampXY * 0.7,
+        Math.cos(t * 0.4) * ampXY * 0.7 - recede * 3.2,
         camZ - offset
       );
       astro.current.rotation.y += delta * 0.25;

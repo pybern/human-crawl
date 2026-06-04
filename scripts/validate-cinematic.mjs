@@ -97,6 +97,16 @@ async function run() {
   // also require the distance to actually vary (depth, not just FOV jitter)
   const distSpread = Math.max(...dists) - Math.min(...dists);
 
+  // Shape checks for the requested behaviour:
+  //   recede (get smaller) through the scroll, then POP forward at the end.
+  const startSize = sizes[0];
+  const lastSize = sizes[sizes.length - 1];
+  const minIdx = sizes.indexOf(min);
+  const minP = samples[minIdx].p;
+  const recedes = min < startSize * 0.7; // it shrinks well below the start size
+  const deepLate = minP >= 0.5; // deepest point is in the latter half
+  const popsForward = lastSize > min * 1.8 && lastSize >= 0.7 * max; // big at end
+
   console.log("progress -> apparent size(px) / distance(world)");
   samples.forEach((s) =>
     console.log(
@@ -106,9 +116,17 @@ async function run() {
   console.log(
     `\nsize ratio max/min = ${ratio.toFixed(2)} (need >= ${MIN_RATIO}); distance spread = ${distSpread.toFixed(1)}`
   );
+  console.log(
+    `recede(min<0.7*start)=${recedes}  deepest@p=${minP.toFixed(2)}(>=0.5? ${deepLate})  popForward(end big)=${popsForward}`
+  );
 
-  const pass = ratio >= MIN_RATIO && distSpread > 6;
-  console.log(pass ? "\nPASS ✅ astronaut has scroll-driven depth" : "\nFAIL ❌ depth too weak");
+  const pass =
+    ratio >= MIN_RATIO && distSpread > 6 && recedes && deepLate && popsForward;
+  console.log(
+    pass
+      ? "\nPASS ✅ astronaut recedes into depth then pops forward at the end"
+      : "\nFAIL ❌ depth shape not as expected (recede -> pop)"
+  );
   process.exit(pass ? 0 : 1);
 }
 
