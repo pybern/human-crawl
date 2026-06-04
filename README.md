@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LUSION — reproduction
 
-## Getting Started
+A faithful, responsive reproduction of the award-winning [lusion.co](https://lusion.co)
+immersive WebGL experience ([Awwwards reference](https://www.awwwards.com/sites/lusion-v3)),
+built with **Next.js 16 (App Router)**, **React 19**, **React Three Fiber**, **GSAP** and
+**Lenis**. Works on desktop and mobile.
 
-First, run the development server:
+> This is a study/reproduction of the signature journey and effects using open-source /
+> placeholder assets. It is not affiliated with Lusion.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## The journey
+
+| Section | What it does |
+|---|---|
+| **Preloader** | Glossy "L" mark + 0→100 counter, then a clip-wipe reveal |
+| **Hero — jack pit** | Interactive pile of glossy "jack" shapes with centre-attraction physics; the cursor/touch smashes through it |
+| **Bold Ideas, Brought to Life** | Kinetic heading + a glossy flowing 3D ribbon + copy |
+| **Play Reel** | Full-bleed showreel with kinetic "Play Reel" type + play/mute |
+| **Featured Work** | Responsive project grid with hover-to-play video cards |
+| **Step into a new world** | Pinned, scroll-driven cinematic: an astronaut flies through space → a wireframe grid tunnel → a glowing crystal cave, with a lens/chromatic vignette and fading text |
+| **Let's work together** | Smiley-helmet astronaut in a floating emoji-sticker cloud with cursor parallax |
+| **Footer + About teaser** | Contact / newsletter / socials + a dark "About Us" next-page teaser with a route transition |
+
+See [`docs/USER_JOURNEY.md`](docs/USER_JOURNEY.md) for a section-by-section breakdown of the
+real site (with captured reference frames), and [`docs/comparison/`](docs/comparison) for
+reference-vs-reproduction screenshots.
+
+## Architecture
+
+- **One persistent, transparent `<Canvas>`** is layered above the DOM. Each section anchors its
+  3D to an HTML element via a drei `<View>` (wrapped in `LazyView`), i.e. *"3D mapped to the
+  position of HTML elements"* — the approach Lusion documents in their
+  [WebGL-Scroll-Sync](https://github.com/lusionltd/WebGL-Scroll-Sync) write-up.
+- **Lenis** smooth scrolling on a single rAF loop that also drives **GSAP ScrollTrigger**.
+- **`LazyView`** mounts each section's 3D only when it scrolls near the viewport (drei skips
+  rendering off-screen Views), avoiding a first-load shader-compile stall.
+- The hero pit and the CTA sticker cloud use **lightweight custom simulations rendered through a
+  single `InstancedMesh`** (reliable inside `<View>`, one draw call).
+- Capability detection caps DPR, reduces body/particle counts on mobile, honours
+  `prefers-reduced-motion`, and shows static gradient fallbacks when WebGL is unavailable.
+
+```
+app/            layout, page (section composition), about, template (route transition), globals.css
+components/
+  providers/    Lenis + rAF + capability/pointer detection
+  canvas/       CanvasRoot (ssr:false), SceneCanvas (<View.Port>), LazyView, StudioEnv
+  layout/       Header, MenuOverlay, Cursor, CornerMarks, Preloader
+  sections/     Hero, BroughtToLife, PlayReel, FeaturedWork, NewWorld, LetsWork, Footer (+ 3D)
+  ui/           Reveal, KineticHeading
+lib/            store (zustand), capabilities, cinema, data/projects, three/jack
+scripts/        capture-reference.mjs, capture-self.mjs
+docs/           USER_JOURNEY.md, reference/, self/, comparison/, PLAN.md
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Getting started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+pnpm dev          # http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Production:
 
-## Learn More
+```bash
+pnpm build && pnpm start
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Capturing screenshots (optional)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Both scripts use a system Chrome via `CHROME_PATH` (defaults to `/usr/local/bin/google-chrome`)
+with SwiftShader, so WebGL works headless.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+node scripts/capture-reference.mjs              # records the real lusion.co -> docs/reference/
+node scripts/capture-self.mjs                   # records this app (dev server running) -> docs/self/
+```
 
-## Deploy on Vercel
+## Assets & licensing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+All visuals are **procedural or open-source placeholders, designed to be swapped**:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Jacks, ribbon, worlds, astronaut, crystals** — procedurally generated from three.js
+  primitives (no external files, CC0-by-construction).
+- **Environment reflections** — built at runtime from drei `<Lightformer>`s (no HDR download).
+- **Videos** (`public/videos/*.mp4`) — generated with `ffmpeg` gradient sources as CC0-style
+  placeholders for the showreel and project hovers; replace with real footage.
+- **Stickers** — system emoji rasterised to canvas textures.
+- **Fonts** — [Space Grotesk] (display) + [Inter Tight] (body) via `next/font/google`, as free
+  near-matches for Lusion's grotesk; swap for the licensed face later.
+
+## Notes / scope
+
+A 1:1 clone is a ~year-long studio effort; this targets the full journey and the signature
+effects at curated fidelity. Deferred refinements: a true cursor-displacement post-process and a
+stencil-rounded hero window. See [`docs/PLAN.md`](docs/PLAN.md).

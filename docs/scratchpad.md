@@ -64,6 +64,13 @@ Full faithful clone ≈ 1yr studio effort. Plan = curated reproduction of the **
 - DEFERRED to polish (Phase 7): signature mouse-displacement post-FX + rounded stencil mask on hero window (corners currently rounded via DOM window bg behind transparent canvas — good enough).
 - Self-test harness: /tmp/shot2.mjs (settle+interact), /tmp/dbgall.mjs (all console+errors). Dev server on :3000.
 
+## STATUS: ALL PHASES COMPLETE (0-8)
+- All 8 sections built + verified headless (desktop+mobile). Lint+build green. /about + route transition.
+- Phase 7: LazyView (IO-gated View mount) fixes load stall + no-WebGL fallbacks; .pill moved to @layer components so mobile `hidden` works; focus-visible a11y.
+- Phase 8: scripts/capture-self.mjs, docs/self/*, docs/comparison/* (ref-vs-ours hstack), README rewritten, PR.
+- Reveal time ~4.7s (hero compile under SwiftShader; covered by preloader). Acceptable.
+- Deferred polish (documented): cursor-displacement post-FX, hero stencil rounded window, GLTF astronaut swap.
+
 ## Open questions for user
 1. Scope/fidelity vs. time: build ALL sections at medium fidelity, or fewer sections at high fidelity? (Plan assumes all sections, curated fidelity.)
 2. OK to fetch external CC0 assets (astronaut GLTF, sample videos, HDRI) at build/dev time and commit small ones to `public/`? Remote video via next/image remotePatterns OK?
