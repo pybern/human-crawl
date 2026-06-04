@@ -142,10 +142,19 @@ export default function NewWorld() {
           className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center text-white"
           style={{ opacity: 0 }}
         >
-          <span className="font-mono text-[0.7rem] uppercase tracking-[0.3em] text-white/70">
+          <span
+            className="font-mono text-[0.7rem] uppercase tracking-[0.3em] text-white/70"
+            style={{ textShadow: "0 2px 16px rgba(0,0,0,.7)" }}
+          >
             Is your big idea ready to go wild?
           </span>
-          <h2 className="mt-6 font-display text-[13vw] font-semibold leading-[0.95] tracking-tight md:text-[8vw]">
+          <h2
+            className="mt-6 font-display text-[13vw] font-semibold leading-[0.95] tracking-tight md:text-[8vw]"
+            style={{
+              textShadow:
+                "0 6px 50px rgba(0,0,0,.65), 0 2px 10px rgba(0,0,0,.6)",
+            }}
+          >
             Let&apos;s work together!
           </h2>
           <a href="mailto:hello@lusion.co" className="pointer-events-auto mt-10 inline-flex">

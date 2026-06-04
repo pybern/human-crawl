@@ -232,17 +232,18 @@ function StickerCloud({ mobile }: { mobile: boolean }) {
   const items = useMemo(
     () =>
       Array.from({ length: count }, (_, i) => {
-        // ring placement keeps the centre clear so the astronaut stays visible
+        // wide ring placement keeps the centre + heading band clear so both the
+        // astronaut and the CTA text stay readable
         const ang = (i / count) * Math.PI * 2 + Math.random() * 0.5;
-        const r = 2.6 + Math.random() * 2.4;
+        const r = 3.8 + Math.random() * 2.2;
         return {
           tex: emojiTexture(EMOJIS[i % EMOJIS.length]),
           pos: new THREE.Vector3(
             Math.cos(ang) * r,
-            Math.sin(ang) * r * 0.82,
+            Math.sin(ang) * r, // taller spread -> fewer at heading height
             (Math.random() - 0.5) * 2
           ),
-          scale: 0.55 + Math.random() * 0.6,
+          scale: 0.55 + Math.random() * 0.55,
         };
       }),
     [count]
