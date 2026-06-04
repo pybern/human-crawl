@@ -3,7 +3,6 @@ import BroughtToLife from "@/components/sections/BroughtToLife";
 import PlayReel from "@/components/sections/PlayReel";
 import FeaturedWork from "@/components/sections/FeaturedWork";
 import NewWorld from "@/components/sections/NewWorld";
-import LetsWork from "@/components/sections/LetsWork";
 import Footer from "@/components/sections/Footer";
 
 export default function Home() {
@@ -14,7 +13,6 @@ export default function Home() {
       <PlayReel />
       <FeaturedWork />
       <NewWorld />
-      <LetsWork />
       <Footer />
     </main>
   );
