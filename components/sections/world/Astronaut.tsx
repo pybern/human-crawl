@@ -112,7 +112,7 @@ export default function Astronaut({
 }
 
 /** Procedurally draw a glowing LED "smiley" face to a canvas texture. */
-function makeSmiley(): THREE.CanvasTexture {
+export function makeSmiley(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = c.height = 256;
   const ctx = c.getContext("2d")!;
