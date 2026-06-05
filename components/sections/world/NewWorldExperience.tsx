@@ -217,18 +217,18 @@ export default function NewWorldExperience({ wormhole = false }: { wormhole?: bo
           className="font-display text-[8vw] font-medium leading-[0.98] tracking-tight md:text-[5.2vw]"
           style={{ opacity: 0 }}
         >
-          Step into a new world
+          Push the frontier
           <br />
-          and let your
+          ship it
           <br />
-          imagination run wild
+          responsibly.
         </h2>
         <div
           ref={t2}
           className="absolute font-mono text-xs uppercase tracking-[0.35em] text-white"
           style={{ opacity: 0 }}
         >
-          Big ideas · built to ship
+          AI &amp; tech · practical, governed, real
         </div>
       </div>
 
@@ -242,13 +242,13 @@ export default function NewWorldExperience({ wormhole = false }: { wormhole?: bo
           className="font-mono text-[0.7rem] uppercase tracking-[0.3em] text-white/70"
           style={{ textShadow: "0 2px 16px rgba(0,0,0,.7)" }}
         >
-          Is your big idea ready to go wild?
+          From wild idea to working product.
         </span>
         <h2
           className="mt-6 font-display text-[13vw] font-semibold leading-[0.95] tracking-tight md:text-[8vw]"
           style={{ textShadow: "0 6px 50px rgba(0,0,0,.65), 0 2px 10px rgba(0,0,0,.6)" }}
         >
-          Let&apos;s work together!
+          Let&apos;s build what&apos;s next.
         </h2>
         <button
           type="button"
