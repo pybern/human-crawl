@@ -91,6 +91,15 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
   - Rendered through **one `InstancedMesh`** (per-instance colour), 1 draw call.
 - **Why custom:** `@react-three/rapier` does not render inside a drei `<View>`
   portal (see §3) — so we wrote our own sim.
+- **Reference baseline (recorded from the live site):**
+  `docs/reference/desktop/hero_interact_00..05.jpg` + `docs/reference/hero_interaction.mp4`
+  (capture with `node scripts/capture-reference.mjs --mode=hero-interaction`). Confirms the real
+  build: three.js + **Rapier**, a **mouse-tracked collider**, a **centre-attraction** force, and a
+  **custom impulse** that amplifies small cursor moves ("ball smasher"); the pit is masked by a
+  rounded **stencil** window and a **2D mouse-displacement** post pass ripples the canvas around the
+  cursor. Geometry read from the frames: each jack is **three perpendicular thick hollow open tubes**
+  (visible bores, short chunky arms ≈ tip-to-tip 2× the outer diameter), very glossy clearcoat, deep
+  cobalt/white/black/grey, with depth-of-field softening the far pieces.
 
 ### 2.2 Bold Ideas, Brought to Life — `BroughtToLife.tsx` + `visuals/Ribbon.tsx`
 - **Design:** kinetic word-rise heading (`KineticHeading`), a glossy cobalt
