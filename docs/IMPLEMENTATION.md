@@ -76,21 +76,37 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
 - **Gotcha:** one-shot — once revealed it never returns even as later sections
   stream in (see §3).
 
-### 2.1 Hero — "jack pit" — `Hero.tsx` + `hero/JackPit.tsx` + `lib/three/jack.ts`
-- **Design:** rounded dark window holding a dense pile of glossy "jack" shapes
-  (cobalt/white/black/grey), env-reflective `MeshPhysicalMaterial` with clearcoat.
-  Geometry = 3 perpendicular capped cylinders + centre sphere + 6 torus rim tips,
-  merged (`createJackGeometry`).
+### 2.1 Hero — "jack pit" — `Hero.tsx` + `hero/HeroCanvas.tsx` + `hero/JackPit.tsx` + `hero/HeroEnv.tsx` + `lib/three/jack.ts` + `lib/three/MouseDisplacementEffect.ts`
+- **Design:** rounded dark window holding a dense pile of big, glossy "jack" shapes
+  (deep-cobalt/white/black/grey). **Geometry = three perpendicular thick *hollow
+  open tubes*** (revolved wall cross-section via `LatheGeometry`, beveled rims) +
+  a centre plug sphere, merged (`createJackGeometry(arm, outerR, innerR)`) — you
+  see straight down each bore, exactly like the reference. Material is an
+  env-reflective `MeshPhysicalMaterial` (clearcoat, `roughness 0.16`,
+  `envMapIntensity 1.15`, `side: DoubleSide` so the thin shells read solid).
+- **Dedicated canvas (not the shared `<View>` port):** the hero has its **own**
+  transparent `<Canvas>` (`HeroCanvas`) so it can run an **`EffectComposer`** —
+  postprocessing doesn't compose inside a drei `<View>` (see §3). Lighting comes
+  from a hero-local `HeroEnv` (neutral white Lightformers, no HDR) kept separate
+  from the shared `StudioEnv` so the cobalt stays true. The loop is **paused via
+  `frameloop="never"` when the window scrolls out of view** (IntersectionObserver
+  in `Hero`) so it isn't burning frames page-deep.
+- **Signature mouse-displacement** (`MouseDisplacementEffect`): a `mainUv` post
+  pass that **drags** the rendered pixels along the eased cursor velocity (the
+  fluid smear) plus a small radial **lens**, gaussian falloff, aspect-corrected.
+  Desktop-only, disabled for reduced-motion. (Verified by forcing a fixed strong
+  lens during dev.)
 - **Physics (custom, not a library):** a lightweight sim in `Pile`:
   - **Centre attraction** (not gravity) so the pile always fills the window and
     refills after the cursor carves through (`attract = 4`).
-  - **Sphere-approx pairwise repulsion** (O(n²), n≈52 desktop / 30 mobile).
-  - **Amplified pointer shove** with a velocity cap (`MAX_V`).
-  - **Calm rotation:** initial angular vel 0.7, damping 0.82/substep, hard cap
+  - **Sphere-approx pairwise repulsion** (O(n²), n≈24 desktop / 14 mobile — fewer,
+    bigger pieces than before to match the reference).
+  - **Amplified pointer shove** (radius ≈ 2.3) with a velocity cap (`MAX_V`).
+  - **Calm rotation:** initial angular vel 0.6, damping 0.82/substep, hard cap
     `MAX_A = 2.2 rad/s`, gentle collision/cursor tumble.
-  - Rendered through **one `InstancedMesh`** (per-instance colour), 1 draw call.
-- **Why custom:** `@react-three/rapier` does not render inside a drei `<View>`
-  portal (see §3) — so we wrote our own sim.
+  - Rendered through **one `InstancedMesh`** (per-instance random colour), 1 draw call.
+- **Why custom physics:** `@react-three/rapier` does not render inside a drei
+  `<View>` portal (see §3) — so we wrote our own sim.
 - **Reference baseline (recorded from the live site):**
   `docs/reference/desktop/hero_interact_00..05.jpg` + `docs/reference/hero_interaction.mp4`
   (capture with `node scripts/capture-reference.mjs --mode=hero-interaction`). Confirms the real
@@ -218,6 +234,9 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
 | Want to change | Where |
 |---|---|
 | Jack count / size / spin | `hero/JackPit.tsx` (`count`, `scale`, `attract`, `MAX_A`, damping) |
+| Jack shape (tube wall / bore / bevel) | `lib/three/jack.ts` (`arm`, `outerR`, `innerR`, `c`) + palette `JACK_COLORS` |
+| Hero gloss / camera / depth | `hero/JackPit.tsx` (material `roughness`/`envMapIntensity`, camera `fov`/`z`, `halfD`) + `hero/HeroEnv.tsx` |
+| Mouse-displacement feel | `hero/HeroCanvas.tsx` (vel gain/`max`, `strength` cap) + `lib/three/MouseDisplacementEffect.ts` (`uRadius`) |
 | Astronaut depth / pop | `world/AstronautJourney.tsx` (`START`, `FAR`, `NEAR`, `POP_AT`) |
 | CTA take-over timing | `AstronautJourney.tsx` (`cta = smoother((p-0.8)/0.2)`) + `NewWorld.tsx` timeline |
 | Card tilt strength | `hooks/useTilt.ts` (`max`, `perspective`) |
