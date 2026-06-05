@@ -208,7 +208,7 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
       </group>
 
       <group ref={starRef}>
-        <Starfield />
+        <Starfield mobile={mobile} />
       </group>
       <group ref={gridRef} visible={false}>
         <GridTunnel mobile={mobile} />
@@ -320,9 +320,9 @@ function DiamondCloud({ mobile }: { mobile: boolean }) {
 
 /* --------------------------------------------------------------- starfield */
 
-function Starfield() {
+function Starfield({ mobile = false }: { mobile?: boolean }) {
   const geo = useMemo(() => {
-    const N = 1800;
+    const N = mobile ? 1600 : 2800; // more of them
     const pos = new Float32Array(N * 3);
     for (let i = 0; i < N; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 100;
@@ -332,13 +332,15 @@ function Starfield() {
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     return g;
-  }, []);
+  }, [mobile]);
   const mat = useMemo(() => {
     const m = new THREE.PointsMaterial({
-      size: 0.14,
+      size: 0.1, // smaller, round particles
+      map: makeDot(),
       color: "#dfe6ff",
       sizeAttenuation: true,
       transparent: true,
+      depthWrite: false,
       opacity: 0.9,
     });
     m.userData.baseOpacity = 0.9;
@@ -424,38 +426,53 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
     m.userData.baseOpacity = 0.42;
     return m;
   }, []);
-  const bits = mobile ? 80 : 190;
-  const bitsRef = useRef<THREE.InstancedMesh>(null);
-  const bitGeo = useMemo(() => new THREE.BoxGeometry(0.18, 0.18, 0.18), []);
-  const bitMat = useMemo(() => {
-    const m = new THREE.MeshBasicMaterial({ color: "#7ea0ff", transparent: true, opacity: 0.9 });
-    m.userData.baseOpacity = 0.9;
-    return m;
-  }, []);
-  const bitItems = useMemo(
-    () =>
-      Array.from({ length: bits }, () => ({
-        x: (Math.random() - 0.5) * 2 * s,
-        y: (Math.random() - 0.5) * 2 * s,
-        z: SPACE_END + Math.random() * (GRID_END - SPACE_END),
-        spd: 4 + Math.random() * 8,
-      })),
+  // Drifting "data bits": small round particles. A single THREE.Points cloud
+  // (one draw call, soft circular sprite) so we can have lots of them cheaply.
+  const bits = mobile ? 220 : 520;
+  const bitsRef = useRef<THREE.Points>(null);
+  const dotTex = useMemo(() => makeDot(), []);
+  const bitGeo = useMemo(() => {
+    const pos = new Float32Array(bits * 3);
+    for (let i = 0; i < bits; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 2 * s;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 2 * s;
+      pos[i * 3 + 2] = SPACE_END + Math.random() * (GRID_END - SPACE_END);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    return g;
+  }, [bits]);
+  const speeds = useMemo(
+    () => Float32Array.from({ length: bits }, () => 4 + Math.random() * 8),
     [bits]
   );
+  const bitMat = useMemo(() => {
+    const m = new THREE.PointsMaterial({
+      size: 0.12,
+      map: dotTex,
+      color: "#9ab4ff",
+      sizeAttenuation: true,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
+    });
+    m.userData.baseOpacity = 0.95;
+    return m;
+  }, [dotTex]);
   useFrame((state, delta) => {
     if (group.current)
       group.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.05) * 0.1;
-    const mesh = bitsRef.current;
-    if (mesh) {
-      const m = new THREE.Matrix4();
-      bitItems.forEach((b, i) => {
-        b.z += b.spd * delta; // drift toward the camera
-        if (b.z > SPACE_END) b.z = GRID_END;
-        m.makeTranslation(b.x, b.y, b.z);
-        mesh.setMatrixAt(i, m);
-      });
-      mesh.instanceMatrix.needsUpdate = true;
-      mesh.frustumCulled = false;
+    const pts = bitsRef.current;
+    if (pts) {
+      const arr = pts.geometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < bits; i++) {
+        let z = arr[i * 3 + 2] + speeds[i] * delta; // drift toward the camera
+        if (z > SPACE_END) z = GRID_END;
+        arr[i * 3 + 2] = z;
+      }
+      pts.geometry.attributes.position.needsUpdate = true;
+      pts.frustumCulled = false;
     }
   });
   return (
@@ -472,7 +489,7 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
         <primitive object={longGeo} attach="geometry" />
         <primitive object={mat2} attach="material" />
       </lineSegments>
-      <instancedMesh ref={bitsRef} args={[bitGeo, bitMat, bits]} frustumCulled={false} />
+      <points ref={bitsRef} geometry={bitGeo} material={bitMat} frustumCulled={false} />
     </group>
   );
 }
@@ -605,7 +622,7 @@ function CrystalTunnel({ mobile }: { mobile: boolean }) {
 /* ---------------------------------------------------------------- sparkles */
 
 function SparkleField({ mobile }: { mobile: boolean }) {
-  const count = mobile ? 180 : 520;
+  const count = mobile ? 280 : 780;
   const geo = useMemo(() => {
     const N = count;
     const pos = new Float32Array(N * 3);
@@ -628,7 +645,8 @@ function SparkleField({ mobile }: { mobile: boolean }) {
   }, [count]);
   const mat = useMemo(() => {
     const m = new THREE.PointsMaterial({
-      size: 0.22,
+      size: 0.16, // smaller, round
+      map: makeDot(),
       sizeAttenuation: true,
       vertexColors: true,
       transparent: true,
@@ -640,6 +658,25 @@ function SparkleField({ mobile }: { mobile: boolean }) {
     return m;
   }, []);
   return <points geometry={geo} material={mat} frustumCulled={false} />;
+}
+
+/* ----------------------------------------------------------- particle dot */
+
+/** Soft round sprite so Points read as little spheres instead of squares. */
+function makeDot(): THREE.CanvasTexture {
+  const s = 64;
+  const c = document.createElement("canvas");
+  c.width = c.height = s;
+  const ctx = c.getContext("2d")!;
+  const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.45, "rgba(255,255,255,0.6)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, s, s);
+  const tex = new THREE.CanvasTexture(c);
+  tex.needsUpdate = true;
+  return tex;
 }
 
 /* ------------------------------------------------------------- LED visor */
