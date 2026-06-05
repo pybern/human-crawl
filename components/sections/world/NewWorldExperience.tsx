@@ -25,7 +25,7 @@ const CinematicCanvas = dynamic(
  * are viewport-fixed. Mirrors the home section's scrub-timeline copy, but the
  * scene + post stack are the high-detail variant.
  */
-export default function NewWorldExperience() {
+export default function NewWorldExperience({ wormhole = false }: { wormhole?: boolean }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const t1 = useRef<HTMLHeadingElement>(null);
   const t2 = useRef<HTMLDivElement>(null);
@@ -75,7 +75,7 @@ export default function NewWorldExperience() {
     const lenis = (window as unknown as { lenis?: Lenis }).lenis;
     if (!lenis) return;
 
-    const AUTO_FULL_SEC = 36; // time to traverse the whole page at constant speed
+    const AUTO_FULL_SEC = wormhole ? 24 : 36; // wormhole = a quicker, more intense zoom
     const IDLE_MS = 220; // resume auto-scroll after the user stops scrolling
     let resumeTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -106,7 +106,7 @@ export default function NewWorldExperience() {
       clearTimeout(startTimer);
       if (resumeTimer) clearTimeout(resumeTimer);
     };
-  }, [ready, letterOpen, reducedMotion]);
+  }, [ready, letterOpen, reducedMotion, wormhole]);
 
   // Arriving via "← Back" from the About-us page (/#letter): jump to the END of
   // the journey and re-open the founders letter, so back lands you on the letter
@@ -185,7 +185,7 @@ export default function NewWorldExperience() {
     >
       {/* dedicated WebGL canvas (fixed, pointer-events none) */}
       {webglOk ? (
-        <CinematicCanvas paused={letterOpen} />
+        <CinematicCanvas paused={letterOpen} wormhole={wormhole} />
       ) : (
         <div
           className="fixed inset-0"

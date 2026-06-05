@@ -59,7 +59,13 @@ const EMOJIS = [
   "🔥", "🌈", "👾", "🍦", "✨", "🎲", "🦴", "🤖",
 ];
 
-export default function CinematicJourney({ mobile = false }: { mobile?: boolean }) {
+export default function CinematicJourney({
+  mobile = false,
+  wormhole = false,
+}: {
+  mobile?: boolean;
+  wormhole?: boolean;
+}) {
   const camRef = useRef<THREE.PerspectiveCamera>(null);
   const astro = useRef<THREE.Group>(null);
   const faceRef = useRef<THREE.Mesh>(null);
@@ -91,6 +97,18 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
     const cta = smoother((p - 0.82) / 0.18);
     // worlds clear out as the CTA takes over
     const ctaFade = 1 - smoother((p - 0.82) / 0.13);
+
+    // wormhole "warp punch": widen FOV + add a roll as speed builds (the
+    // intense fly-through). Only on the /fast experiment (wormhole flag).
+    if (wormhole) {
+      const warp = smoother(THREE.MathUtils.clamp((p - 0.05) / 0.6, 0, 1));
+      const fov = THREE.MathUtils.lerp(55, 96, warp) * (1 - cta * 0.25);
+      if (Math.abs(cam.fov - fov) > 0.05) {
+        cam.fov = fov;
+        cam.updateProjectionMatrix();
+      }
+      cam.rotation.z = Math.sin(t * 0.7) * 0.06 * warp * (1 - cta);
+    }
     // Progress-driven engagement: nothing but stars + astronaut at the start;
     // the grid fades in as you approach it, then hands off to the crystal cave.
     const gridFade = Math.min(smoother((p - 0.08) / 0.18), 1 - smoother((p - 0.6) / 0.16));
@@ -222,7 +240,130 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
         <CrystalTunnel mobile={mobile} />
         <SparkleField mobile={mobile} />
       </group>
+
+      {wormhole && (
+        <>
+          <WarpStreaks mobile={mobile} />
+          <WormholeRings mobile={mobile} />
+        </>
+      )}
     </>
+  );
+}
+
+/* --------------------------------------------------------- wormhole (/fast) */
+
+/** Hyperspace warp streaks: instanced Z-stretched bars rushing past the camera. */
+function WarpStreaks({ mobile }: { mobile: boolean }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  const count = mobile ? 180 : 380;
+  const geo = useMemo(() => new THREE.BoxGeometry(0.035, 0.035, 1), []);
+  const mat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: "#bcd2ff",
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+    []
+  );
+  const items = useMemo(
+    () =>
+      Array.from({ length: count }, () => {
+        const ang = Math.random() * Math.PI * 2;
+        const r = 1.4 + Math.random() * 10;
+        return {
+          x: Math.cos(ang) * r,
+          y: Math.sin(ang) * r,
+          z: -Math.random() * 220,
+          spd: 70 + Math.random() * 140,
+          len: 6 + Math.random() * 18,
+        };
+      }),
+    [count]
+  );
+  const m4 = useMemo(() => new THREE.Matrix4(), []);
+  const q = useMemo(() => new THREE.Quaternion(), []);
+  const pos = useMemo(() => new THREE.Vector3(), []);
+  const scl = useMemo(() => new THREE.Vector3(), []);
+  useFrame((state, delta) => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    const p = cinema.progress;
+    const camZ = THREE.MathUtils.lerp(12, CRYSTAL_END + 8, p);
+    const speedK = smoother(THREE.MathUtils.clamp((p - 0.05) / 0.5, 0, 1));
+    items.forEach((it, i) => {
+      it.z += it.spd * delta * (0.35 + speedK);
+      if (it.z > camZ + 8) it.z = camZ - 220 - Math.random() * 40;
+      pos.set(it.x, it.y, it.z);
+      scl.set(1, 1, it.len * (0.4 + speedK * 1.4));
+      m4.compose(pos, q, scl);
+      mesh.setMatrixAt(i, m4);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.frustumCulled = false;
+    const cta = smoother((p - 0.82) / 0.13);
+    mat.opacity = 0.9 * speedK * (1 - cta);
+  });
+  return <instancedMesh ref={ref} args={[geo, mat, count]} frustumCulled={false} />;
+}
+
+/** Swirling helix of glowing rings the astronaut flies through (the wormhole). */
+function WormholeRings({ mobile }: { mobile: boolean }) {
+  const group = useRef<THREE.Group>(null);
+  const N = mobile ? 30 : 52;
+  const SPAN = 260;
+  const geo = useMemo(() => new THREE.TorusGeometry(5.5, 0.07, 8, 72), []);
+  const mats = useMemo(
+    () =>
+      Array.from({ length: N }, (_, i) => {
+        const c = new THREE.Color().setHSL(0.52 + 0.22 * (i / N), 0.95, 0.6);
+        return new THREE.MeshBasicMaterial({
+          color: c,
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+      }),
+    [N]
+  );
+  useFrame((state, delta) => {
+    const g = group.current;
+    if (!g) return;
+    const p = cinema.progress;
+    const t = state.clock.elapsedTime;
+    const camZ = THREE.MathUtils.lerp(12, CRYSTAL_END + 8, p);
+    const speedK = smoother(THREE.MathUtils.clamp((p - 0.05) / 0.5, 0, 1));
+    const cta = smoother((p - 0.82) / 0.13);
+    g.children.forEach((child, i) => {
+      child.position.z += (45 + 90 * speedK) * delta;
+      if (child.position.z > camZ + 6) child.position.z -= SPAN;
+      // helical swirl of the ring centres → a twisting wormhole tube
+      const a = i * 0.5 + t * 0.6;
+      const swirl = 1.3 + 0.5 * Math.sin(t * 0.4 + i * 0.2);
+      child.position.x = Math.cos(a) * swirl;
+      child.position.y = Math.sin(a) * swirl;
+      const s = 0.8 + 0.35 * Math.sin(i * 0.6 + t);
+      child.scale.setScalar(s);
+      const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.85 * speedK * (1 - cta);
+      child.visible = speedK > 0.01;
+    });
+  });
+  return (
+    <group ref={group}>
+      {mats.map((m, i) => (
+        <mesh
+          key={i}
+          geometry={geo}
+          material={m}
+          position={[0, 0, CRYSTAL_END + 8 - (i / N) * SPAN]}
+        />
+      ))}
+    </group>
   );
 }
 
