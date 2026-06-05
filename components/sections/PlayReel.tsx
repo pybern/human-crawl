@@ -29,7 +29,7 @@ export default function PlayReel() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full px-5 py-10 md:px-10 md:py-16"
+      className="relative w-full px-2 py-10 md:px-4 md:py-16"
       style={{ background: "var(--bg)" }}
     >
       <div

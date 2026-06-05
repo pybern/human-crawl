@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
-import StudioEnv from "@/components/canvas/StudioEnv";
+import HeroEnv from "@/components/sections/hero/HeroEnv";
 import { createJackGeometry, JACK_COLORS } from "@/lib/three/jack";
 
 /**
@@ -18,14 +18,18 @@ import { createJackGeometry, JACK_COLORS } from "@/lib/three/jack";
  * around with the cursor / finger.
  */
 export default function JackPit({ mobile = false }: { mobile?: boolean }) {
-  const count = mobile ? 30 : 52;
+  // Fewer, bigger pieces (like the reference): a dense pile of chunky jacks
+  // rather than a cloud of small ones.
+  const count = mobile ? 14 : 24;
   return (
     <>
-      <PerspectiveCamera makeDefault fov={35} position={[0, 0, 8]} />
-      <StudioEnv intensity={0.75} />
-      <ambientLight intensity={0.45} />
-      <directionalLight position={[4, 6, 6]} intensity={2.0} />
-      <directionalLight position={[-6, -2, 2]} intensity={0.6} color="#8a96ff" />
+      <PerspectiveCamera makeDefault fov={38} position={[0, 0, 7]} />
+      <HeroEnv intensity={0.85} />
+      <ambientLight intensity={0.25} />
+      {/* neutral key for the crisp white window streaks */}
+      <directionalLight position={[3, 6, 7]} intensity={2.1} color="#ffffff" />
+      {/* soft neutral fill (was a heavy blue tint that washed the palette) */}
+      <directionalLight position={[-6, -2, 3]} intensity={0.5} color="#dfe2ee" />
       <Pile count={count} mobile={mobile} />
     </>
   );
@@ -49,14 +53,46 @@ type Body = {
 
 type Bounds = { halfW: number; halfH: number; halfD: number };
 
+/**
+ * A balanced, shuffled colour bag so every load shows a good cobalt/white/
+ * black/grey mix (pure per-body random sometimes came out white-heavy). Weights
+ * track the reference: cobalt + white lead, black + grey accent.
+ */
+function colorBag(count: number): number[] {
+  // weights per JACK_COLORS index (0,1 cobalt · 2,3 white · 4,5 black · 6 grey)
+  const weights: Array<[number, number]> = [
+    [0, 0.16],
+    [1, 0.16],
+    [2, 0.13],
+    [3, 0.13],
+    [4, 0.13],
+    [5, 0.13],
+    [6, 0.16],
+  ];
+  const bag: number[] = [];
+  for (const [idx, w] of weights) {
+    const n = Math.round(w * count);
+    for (let i = 0; i < n; i++) bag.push(idx);
+  }
+  while (bag.length < count) bag.push(0);
+  // Fisher–Yates shuffle
+  for (let i = bag.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [bag[i], bag[j]] = [bag[j], bag[i]];
+  }
+  return bag;
+}
+
 function buildBodies(count: number, bounds: Bounds): Body[] {
+  const bag = colorBag(count);
   return Array.from({ length: count }, (_, i) => {
-    const scale = 1.0 + Math.random() * 0.35;
+    // Big chunky pieces with some variation for depth read.
+    const scale = 1.25 + Math.random() * 0.65;
     return {
       pos: new THREE.Vector3(
-        (Math.random() - 0.5) * bounds.halfW * 1.9,
-        (Math.random() - 0.5) * bounds.halfH * 1.9,
-        (Math.random() - 0.5) * bounds.halfD
+        (Math.random() - 0.5) * bounds.halfW * 1.6,
+        (Math.random() - 0.5) * bounds.halfH * 1.6,
+        (Math.random() - 0.5) * bounds.halfD * 1.4
       ),
       vel: new THREE.Vector3(0, 0, 0),
       quat: new THREE.Quaternion().setFromEuler(
@@ -67,32 +103,39 @@ function buildBodies(count: number, bounds: Bounds): Body[] {
         )
       ),
       ang: new THREE.Vector3(
-        (Math.random() - 0.5) * 0.7,
-        (Math.random() - 0.5) * 0.7,
-        (Math.random() - 0.5) * 0.7
+        (Math.random() - 0.5) * 0.6,
+        (Math.random() - 0.5) * 0.6,
+        (Math.random() - 0.5) * 0.6
       ),
       radius: 0.5 * scale,
       scale,
-      colorIdx: i % JACK_COLORS.length,
+      colorIdx: bag[i],
     };
   });
 }
 
 function Pile({ count, mobile }: { count: number; mobile: boolean }) {
   const { viewport } = useThree();
-  const geometry = useMemo(() => createJackGeometry(1.0, 0.2), []);
+  const geometry = useMemo(() => createJackGeometry(1.0, 0.26, 0.13), []);
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   // material: glossy plastic with clearcoat + env reflections
   const material = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
-        metalness: 0.15,
-        roughness: 0.18,
+        // glossy plastic, not a mirror: a touch of roughness keeps the cobalt
+        // saturated instead of washing to periwinkle under the bright env,
+        // while clearcoat still gives the crisp window speculars.
+        metalness: 0.0,
+        roughness: 0.16,
         clearcoat: 1,
-        clearcoatRoughness: 0.12,
+        clearcoatRoughness: 0.09,
         envMapIntensity: 1.15,
         vertexColors: false,
+        // hollow open tubes are thin shells — render both faces so the outer
+        // walls always read as solid (no see-through) and the bores show their
+        // inner walls.
+        side: THREE.DoubleSide,
       }),
     []
   );
@@ -101,9 +144,9 @@ function Pile({ count, mobile }: { count: number; mobile: boolean }) {
   const bounds = useMemo(() => {
     const halfW = viewport.width / 2;
     const halfH = viewport.height / 2;
-    // shallow slab so the chunky jacks pack into a single dense layer that
-    // fills the window (like the reference), instead of scattering in depth.
-    return { halfW, halfH, halfD: 1.1 };
+    // a slab with real depth so the chunky jacks stack front-to-back (the
+    // reference has strong perspective), while still reading as a packed pile.
+    return { halfW, halfH, halfD: 1.7 };
   }, [viewport.width, viewport.height]);
 
   // Simulation state: seeded purely in useMemo, then held in a ref that we
@@ -231,7 +274,7 @@ function Pile({ count, mobile }: { count: number; mobile: boolean }) {
 
       // pointer shove — local, springy, amplified a little by cursor speed
       if (mouseActive.current) {
-        const mr = mobile ? 1.4 : 1.7;
+        const mr = mobile ? 1.8 : 2.3;
         const speed = Math.min(mouseVel.current.length(), 1.5);
         for (const b of bodies) {
           _d.subVectors(b.pos, mouse.current);

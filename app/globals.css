@@ -50,6 +50,19 @@
 html {
   /* Lenis controls scrolling; keep native behavior off. */
   scroll-behavior: auto;
+  /* Hide the native scrollbar so toggling overflow (loader lock, letter modal)
+     never shifts layout. Scrolling still works via wheel/touch/Lenis + the
+     custom progress rail. */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* old Edge/IE */
+}
+
+/* WebKit/Blink (Chrome, Safari, Edge) */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 html,

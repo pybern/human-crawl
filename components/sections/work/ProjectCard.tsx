@@ -95,7 +95,7 @@ export default function ProjectCard({
         >
           <video
             ref={videoRef}
-            className="aspect-[4/3] w-full scale-[1.02] object-cover brightness-[0.92] transition-[transform,filter] duration-700 ease-out group-hover:scale-[1.07] group-hover:brightness-100"
+            className="aspect-[16/10] w-full scale-[1.02] object-cover brightness-[0.92] transition-[transform,filter] duration-700 ease-out group-hover:scale-[1.07] group-hover:brightness-100"
             src={project.video}
             muted
             loop

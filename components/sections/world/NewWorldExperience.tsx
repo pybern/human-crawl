@@ -1,0 +1,375 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import Lenis from "lenis";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import CornerMarks from "@/components/layout/CornerMarks";
+import { cinema } from "@/lib/cinema";
+import { useApp } from "@/lib/store";
+
+if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
+
+// dedicated client-only canvas (post-processing stack)
+const CinematicCanvas = dynamic(
+  () => import("@/components/sections/world/CinematicCanvas"),
+  { ssr: false }
+);
+
+/**
+ * Standalone, higher-detail "Step into a new world" + "Let's work together"
+ * cinematic for the `/new-world` route. A tall scroll spacer drives
+ * `cinema.progress` (read by the scene each frame); the canvas + DOM overlays
+ * are viewport-fixed. Mirrors the home section's scrub-timeline copy, but the
+ * scene + post stack are the high-detail variant.
+ */
+export default function NewWorldExperience() {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const t1 = useRef<HTMLHeadingElement>(null);
+  const t2 = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const haloRef = useRef<HTMLDivElement>(null);
+  const dirRef = useRef<1 | -1>(1);
+  const webglOk = useApp((s) => s.webglOk);
+  const ready = useApp((s) => s.ready);
+  const reducedMotion = useApp((s) => s.reducedMotion);
+  const [letterOpen, setLetterOpen] = useState(false);
+  const lockedByLetter = useRef(false);
+  const openedFromHashRef = useRef(false);
+
+  // Lock page scroll (and pause the cinematic scrub) while the letter is open.
+  // Guarded so it never touches scroll on mount (leaves the preloader's own
+  // loader-lock intact) — it only locks on open and restores on close.
+  useEffect(() => {
+    const root = document.documentElement;
+    const lenis = (window as unknown as { lenis?: Lenis }).lenis;
+    if (letterOpen) {
+      root.style.overflow = "hidden";
+      lenis?.stop();
+      lockedByLetter.current = true;
+    } else if (lockedByLetter.current) {
+      root.style.overflow = "";
+      lenis?.start();
+      lockedByLetter.current = false;
+    }
+  }, [letterOpen]);
+
+  // Close the letter on Escape.
+  useEffect(() => {
+    if (!letterOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLetterOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [letterOpen]);
+
+  // Auto-scroll the cinematic. It starts moving DOWN by default; the next user
+  // scroll decides the direction from then on (scroll down -> auto down, scroll
+  // up -> auto up). Paused while the loader/letter are up and for reduced motion.
+  useEffect(() => {
+    if (!ready || letterOpen || reducedMotion) return;
+    const lenis = (window as unknown as { lenis?: Lenis }).lenis;
+    if (!lenis) return;
+
+    const AUTO_FULL_SEC = 36; // time to traverse the whole page at constant speed
+    const IDLE_MS = 220; // resume auto-scroll after the user stops scrolling
+    let resumeTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const drive = () => {
+      const target = dirRef.current > 0 ? lenis.limit : 0;
+      const dist = Math.abs(target - lenis.scroll);
+      if (dist < 2) return; // already at the boundary
+      lenis.scrollTo(target, {
+        duration: (dist / Math.max(lenis.limit, 1)) * AUTO_FULL_SEC,
+        easing: (t: number) => t, // linear -> constant speed
+      });
+    };
+
+    // fires on real user input (wheel + touch); cancels the auto animation, so
+    // we capture the direction and resume auto-scroll once the user settles.
+    const onUserScroll = (data: { deltaY: number }) => {
+      if (data.deltaY > 0) dirRef.current = 1;
+      else if (data.deltaY < 0) dirRef.current = -1;
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(drive, IDLE_MS);
+    };
+
+    lenis.on("virtual-scroll", onUserScroll);
+    const startTimer = setTimeout(drive, 80); // kick off the default downward auto
+
+    return () => {
+      lenis.off("virtual-scroll", onUserScroll);
+      clearTimeout(startTimer);
+      if (resumeTimer) clearTimeout(resumeTimer);
+    };
+  }, [ready, letterOpen, reducedMotion]);
+
+  // Arriving via "← Back" from the About-us page (/#letter): jump to the END of
+  // the journey and re-open the founders letter, so back lands you on the letter
+  // at the bottom of the page.
+  useEffect(() => {
+    if (!ready || openedFromHashRef.current) return;
+    if (window.location.hash !== "#letter") return;
+    openedFromHashRef.current = true;
+    setLetterOpen(true); // gate auto-scroll + lock immediately
+    history.replaceState(null, "", window.location.pathname);
+    const lenis = (window as unknown as { lenis?: Lenis }).lenis;
+    const t = setTimeout(() => {
+      lenis?.scrollTo(lenis.limit, { immediate: true, force: true });
+    }, 140);
+    return () => clearTimeout(t);
+  }, [ready]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    (window as unknown as { cinema?: typeof cinema }).cinema = cinema;
+
+    const st = ScrollTrigger.create({
+      trigger: root,
+      start: "top top",
+      end: "bottom bottom",
+      scrub: true,
+      onUpdate: (self) => {
+        cinema.progress = self.progress;
+        // move the thumb down its track as progress goes 0 -> 1 (thumb is ~24%
+        // of the track tall, so it travels across the remaining 76%).
+        const thumb = thumbRef.current;
+        if (thumb) thumb.style.top = `${self.progress * 76}%`;
+        // halo gradually appears as the camera zooms in, then persists
+        const halo = haloRef.current;
+        if (halo) {
+          const h = Math.min(self.progress / 0.5, 1);
+          halo.style.opacity = String(h * h * (3 - 2 * h));
+        }
+      },
+    });
+
+    const tl = gsap.timeline({
+      scrollTrigger: { trigger: root, start: "top top", end: "bottom bottom", scrub: true },
+    });
+    tl.fromTo(
+      t1.current,
+      { opacity: 0, filter: "blur(8px)", color: "#6b6f80" },
+      { opacity: 1, filter: "blur(0px)", color: "#ffffff", duration: 0.1 },
+      0.04
+    )
+      .to(t1.current, { opacity: 0, filter: "blur(8px)", duration: 0.08 }, 0.3)
+      .fromTo(
+        t2.current,
+        { opacity: 0, filter: "blur(8px)" },
+        { opacity: 1, filter: "blur(0px)", duration: 0.08 },
+        0.44
+      )
+      .to(t2.current, { opacity: 0, filter: "blur(8px)", duration: 0.08 }, 0.62)
+      .fromTo(ctaRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.12 }, 0.85);
+
+    return () => {
+      st.kill();
+      tl.scrollTrigger?.kill();
+      tl.kill();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={rootRef}
+      data-theme="dark"
+      className="relative w-full"
+      style={{ height: "620vh", background: "var(--night)" }}
+    >
+      {/* dedicated WebGL canvas (fixed, pointer-events none) */}
+      {webglOk ? (
+        <CinematicCanvas paused={letterOpen} />
+      ) : (
+        <div
+          className="fixed inset-0"
+          style={{ background: "radial-gradient(ellipse at center, #0a0c18 0%, #05060a 70%)" }}
+        />
+      )}
+
+      {/* signature chromatic halo — a large soft spectral lens ring centred on
+          the viewport (see docs/reference/desktop/d_08.png) */}
+      <div
+        ref={haloRef}
+        aria-hidden
+        className="pointer-events-none fixed left-1/2 top-1/2 z-[8] -translate-x-1/2 -translate-y-1/2 mix-blend-screen"
+        style={{
+          width: "92vmin",
+          height: "92vmin",
+          borderRadius: "50%",
+          filter: "blur(8px)",
+          opacity: 0,
+          background:
+            "radial-gradient(circle, transparent 39%, rgba(255,60,90,0.10) 45%, rgba(255,160,60,0.10) 48%, rgba(120,255,150,0.13) 50%, rgba(60,170,255,0.15) 52%, rgba(150,90,255,0.12) 55%, rgba(120,160,255,0.05) 61%, transparent 69%)",
+        }}
+      />
+
+      {/* journey text */}
+      <div className="pointer-events-none fixed inset-0 z-20 flex items-center justify-center px-6 text-center">
+        <h2
+          ref={t1}
+          className="font-display text-[8vw] font-medium leading-[0.98] tracking-tight md:text-[5.2vw]"
+          style={{ opacity: 0 }}
+        >
+          Step into a new world
+          <br />
+          and let your
+          <br />
+          imagination run wild
+        </h2>
+        <div
+          ref={t2}
+          className="absolute font-mono text-xs uppercase tracking-[0.35em] text-white"
+          style={{ opacity: 0 }}
+        >
+          Real-time worlds · built for the browser
+        </div>
+      </div>
+
+      {/* CTA copy */}
+      <div
+        ref={ctaRef}
+        className="pointer-events-none fixed inset-0 z-20 flex flex-col items-center justify-center px-6 text-center text-white"
+        style={{ opacity: 0 }}
+      >
+        <span
+          className="font-mono text-[0.7rem] uppercase tracking-[0.3em] text-white/70"
+          style={{ textShadow: "0 2px 16px rgba(0,0,0,.7)" }}
+        >
+          Is your big idea ready to go wild?
+        </span>
+        <h2
+          className="mt-6 font-display text-[13vw] font-semibold leading-[0.95] tracking-tight md:text-[8vw]"
+          style={{ textShadow: "0 6px 50px rgba(0,0,0,.65), 0 2px 10px rgba(0,0,0,.6)" }}
+        >
+          Let&apos;s work together!
+        </h2>
+        <button
+          type="button"
+          onClick={() => setLetterOpen(true)}
+          className="pointer-events-auto mt-10 inline-flex"
+        >
+          <span className="pill" style={{ background: "var(--bg-elevated)", color: "var(--ink)" }}>
+            <span style={{ opacity: 0.6 }}>✉</span> Letter from the founders
+          </span>
+        </button>
+        <CornerMarks color="rgba(255,255,255,.35)" inset={24} />
+      </div>
+
+      {/* scroll-progress rail (right) — short track + moving thumb, lusion-style */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed right-4 top-1/2 z-30 -translate-y-1/2 md:right-6"
+        style={{ height: "12vh", width: 4 }}
+      >
+        {/* dark track keeps it visible over bright scene parts; muted thumb stays subtle */}
+        <div className="absolute inset-0 rounded-full" style={{ background: "rgba(0,0,0,0.4)" }} />
+        <div
+          ref={thumbRef}
+          className="absolute left-0 w-full rounded-full"
+          style={{ top: 0, height: "24%", background: "rgba(220,224,235,0.6)" }}
+        />
+      </div>
+
+      {/* persistent chrome: back link + asset attribution */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-5 z-20 flex items-center justify-between px-6 md:px-10">
+        <Link
+          href="/demo"
+          className="pointer-events-auto font-mono text-[0.65rem] uppercase tracking-[0.3em] text-white/60 transition-colors hover:text-white"
+        >
+          View the site →
+        </Link>
+        <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-white/40">
+          Astronaut by Poly · CC-BY
+        </span>
+      </div>
+
+      {/* Letter from the founders — modal */}
+      <div
+        aria-hidden={!letterOpen}
+        className="fixed inset-0 z-[80] flex items-center justify-center px-6"
+        style={{
+          opacity: letterOpen ? 1 : 0,
+          pointerEvents: letterOpen ? "auto" : "none",
+          transition: "opacity 0.5s var(--easing)",
+        }}
+      >
+        {/* backdrop — solid dark (no backdrop-filter: blurring the live canvas
+            every frame was the perf hit; the canvas is also paused while open) */}
+        <div
+          aria-hidden
+          onClick={() => setLetterOpen(false)}
+          className="absolute inset-0"
+          style={{ background: "rgba(4,5,10,0.9)" }}
+        />
+
+        {/* paper */}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="A letter from the founders"
+          className="relative w-full max-w-xl overflow-y-auto rounded-[20px] p-8 md:p-12"
+          style={{
+            maxHeight: "84vh",
+            background: "var(--bg-elevated)",
+            color: "var(--ink)",
+            transform: letterOpen ? "translateY(0) scale(1)" : "translateY(24px) scale(0.98)",
+            transition: "transform 0.5s var(--easing)",
+            boxShadow: "0 40px 120px rgba(0,0,0,0.6)",
+          }}
+        >
+          <button
+            type="button"
+            aria-label="Close letter"
+            onClick={() => setLetterOpen(false)}
+            className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full text-lg leading-none transition-colors"
+            style={{ background: "rgba(10,10,12,0.06)", color: "var(--ink)" }}
+          >
+            ×
+          </button>
+
+          <p className="font-mono text-xs uppercase tracking-[0.3em] text-ink-soft">
+            A letter from the founders
+          </p>
+
+          <div className="mt-6 space-y-5 text-lg leading-relaxed md:text-xl">
+            <p>Dear friend,</p>
+            <p>
+              We build on top of many things — the tools, ideas, and shoulders of
+              those who came before us. But most importantly, we build to solve
+              real problems.
+            </p>
+            <p>
+              Our work spans a range of solutions across{" "}
+              <strong>AI</strong>, <strong>web development</strong>, and{" "}
+              <strong>cutting-edge research projects</strong> — wherever a hard,
+              worthwhile problem is waiting to be solved well.
+            </p>
+            <p>Thanks for being here. Let&apos;s build something that matters.</p>
+          </div>
+
+          <p className="mt-8 font-display text-2xl font-medium tracking-tight">
+            — Bernard &amp; Ludo
+          </p>
+
+          <Link
+            href="/founders"
+            onClick={() => setLetterOpen(false)}
+            className="pill mt-8 inline-flex"
+            style={{ background: "var(--ink)", color: "var(--bg-elevated)" }}
+          >
+            Learn more about us →
+          </Link>
+
+          <CornerMarks color="rgba(10,10,12,.25)" inset={16} />
+        </div>
+      </div>
+    </div>
+  );
+}
