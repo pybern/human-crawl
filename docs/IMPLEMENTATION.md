@@ -17,12 +17,15 @@ we hit, and the **lessons learned**. For the reference-site breakdown see
 
 ```
 app/
-  layout.tsx        Root: fonts + metadata; mounts providers, canvas, chrome, page
-  page.tsx          Section composition (Hero → BroughtToLife → PlayReel →
+  layout.tsx        Root: fonts + metadata; mounts providers, canvas, preloader, menu, page
+  page.tsx          "/" → the standalone cinematic landing (NewWorldExperience) — §2.7
+  demo/page.tsx     "/demo" → the full marketing site (Hero → BroughtToLife → PlayReel →
                     FeaturedWork → NewWorld(+CTA) → Footer)
+  founders/page.tsx "/founders" → two side-by-side founder letters — §2.8
+  new-world/page.tsx "/new-world" → redirect("/") (kept so old links work)
   template.tsx      Per-route transition (clip wipe)
   about/page.tsx    Route-transition target
-  globals.css       Design tokens, Lenis + cursor wiring, .pill (components layer)
+  globals.css       Design tokens, Lenis wiring, hidden native scrollbar, .pill (components layer)
 components/
   providers/AppProviders.tsx   Lenis smooth-scroll + single rAF + capability/pointer detection
   canvas/
@@ -55,6 +58,13 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
   a module-level holder `lib/cinema.ts` (`cinema.progress`) set by a ScrollTrigger
   `onUpdate` and read inside `useFrame`.
 - DOM reveals use GSAP ScrollTrigger (`Reveal`, `KineticHeading`, per-card timelines).
+- **Scroll-lock** while overlays are up: `AppProviders` stops Lenis + sets
+  `html { overflow:hidden }` until `store.ready` (loader) and the founders letter
+  does the same while open. The native scrollbar is hidden in `globals.css` so
+  these toggles never shift layout.
+- **First-frame gating:** `components/canvas/FirstFrameSignal` (a one-shot
+  `useFrame`) flips `store.sceneReady` the first time a heavy canvas paints, so
+  the preloader can wait for the scene to be on screen (see §2.0).
 
 ### Capability + accessibility
 - `lib/capabilities.ts` detects WebGL, mobile (coarse pointer / <768px), and
@@ -68,13 +78,21 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
 ## 2. Section-by-section
 
 ### 2.0 Preloader — `components/layout/Preloader.tsx`
-- **Design:** black screen, glossy "L" mark (two gradient panels), `0→100`
-  counter, "Loading experience".
-- **Animation:** counter eases via `useProgress` (drei) with a **min time
-  (1400ms)** and a **hard cap (3600ms)** so it always reveals; clip-path wipe-up
-  reveal, then `store.ready`.
-- **Gotcha:** one-shot — once revealed it never returns even as later sections
-  stream in (see §3).
+- **Design:** black screen with a **modern circular loader** centred — a faint
+  track, a **determinate progress ring** (white, `stroke-dashoffset` driven by the
+  real load %), a **spinning cobalt accent arc** (`animate-spin`), and the live
+  `0→100` counter + "Loading" label in the middle. (Replaced the old glossy "L".)
+- **Animation:** the counter eases toward `min(realProgress, timeProgress)` via
+  drei `useProgress`; clip-path wipe-up reveal, then `store.ready` (700ms later).
+- **Reveal only when actually rendered:** it lifts when `elapsed > MIN_MS (1200)`
+  **and** assets are loaded (`!active`) **and** web fonts are ready
+  (`document.fonts.ready`) **and** the main WebGL scene has painted its first
+  frame (`store.sceneReady`, set by `FirstFrameSignal` in `CinematicCanvas` /
+  `HeroCanvas`). Canvas-less routes (`/about`, `/founders`) fall back to a
+  `SCENE_GRACE (2600ms)` window; a hard `MAX_MS (14000)` cap guarantees it never
+  hangs. One extra rAF before `setDone` so the ready page paints first.
+- **Gotcha:** one-shot — once revealed it never returns even as later content
+  streams in (see §3).
 
 ### 2.1 Hero — "jack pit" — `Hero.tsx` + `hero/HeroCanvas.tsx` + `hero/JackPit.tsx` + `hero/HeroEnv.tsx` + `lib/three/jack.ts` + `lib/three/MouseDisplacementEffect.ts`
 - **Design:** rounded dark window holding a dense pile of big, glossy "jack" shapes
@@ -148,7 +166,9 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
 - **Reference note:** the real site renders thumbnails in WebGL; the slight tilt
   is reproduced here in CSS for reliability.
 
-### 2.5 Step into a new world + CTA (shared scene) — `NewWorld.tsx` + `world/AstronautJourney.tsx` + `world/Astronaut.tsx` + `lib/cinema.ts`
+### 2.5 Step into a new world + CTA (inline `/demo` scene) — `NewWorld.tsx` + `world/AstronautJourney.tsx` + `world/Astronaut.tsx` + `lib/cinema.ts`
+> This is the **inline** version that lives in the `/demo` marketing page. The
+> standalone, higher-detail **`/` landing** cinematic is documented in **§2.7**.
 - **Design:** one pinned (CSS-sticky) scene for the whole back half. A **single
   astronaut instance** (procedural primitives) flies down `-Z` through three
   worlds: starfield → wireframe **grid tunnel** (lineLoops) → emissive **crystal
@@ -176,14 +196,74 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
 - **Behaviour:** newsletter is a client-only fake submit; scroll-to-top uses
   Lenis; the teaser links `/about` with a clip-wipe route transition (`template.tsx`).
 
+### 2.7 Standalone cinematic landing (`/`) — `world/NewWorldExperience.tsx` + `world/CinematicCanvas.tsx` + `world/CinematicJourney.tsx` + `world/AstronautModel.tsx`
+The home route is a full-screen, higher-fidelity cinematic: a GLTF astronaut
+flies down `-Z` through **starfield → data-grid tunnel → crystal cave →
+"Let's work together" CTA**, on a tall (`620vh`) scroll spacer that drives
+`cinema.progress`. A **dedicated `<Canvas>`** (`CinematicCanvas`) runs the full
+post stack (Bloom · DepthOfField · ChromaticAberration · Vignette).
+
+- **Scroll-driven camera + astronaut:** the camera dollies `12 → CRYSTAL_END+8`
+  with a gentle sinusoidal drift; `astronautDepth(p)` recedes (`START 7 → FAR 18`)
+  then **pops forward** to `NEAR 6.5` at `POP_AT 0.78` for the CTA. Astronaut
+  spin/sway scale by `(1 - cta)` so it settles facing camera at the end.
+- **Progressive engagement (per-zone fades):** everything is hidden at frame 0
+  and engages with scroll via smoothstep envelopes on `cinema.progress` —
+  `gridFade` in ~0.08 / out ~0.6, `crystalFade` in ~0.36, `starFade` always-on
+  base; each is multiplied so worlds **clear before the CTA**. `applyFade()`
+  scales every material's stored `baseOpacity`, and groups go `visible=false`
+  under threshold.
+- **Auto-scroll with direction memory** (`NewWorldExperience`): the journey
+  **auto-plays downward** by default (`lenis.scrollTo(limit, linear, ~36s)`); the
+  next user input sets the direction (read from Lenis `virtual-scroll` deltaY —
+  covers wheel + touch) with a debounce that resumes auto-scroll after the user
+  settles. Paused while the loader/letter are up and disabled for reduced-motion.
+- **Progress rail (right):** a short (`12vh`) lusion-style track + a muted thumb
+  that travels `top = progress*76%`, updated in the ScrollTrigger `onUpdate`.
+  Dark translucent track + soft thumb so it's visible-but-subtle.
+- **Chromatic halo:** a large soft **spectral lens ring** (CSS
+  `mix-blend-screen` radial-gradient, `92vmin`) centred on the viewport — it
+  **fades in with the zoom** (`opacity = smoothstep(progress/0.5)`) and **persists**
+  through the CTA. Pure CSS → no WebGL cost. (Ref: `docs/reference/desktop/d_08.png`.)
+- **Particles = round `Points`:** the grid "data bits", the starfield and the
+  crystal sparkles are single-draw-call `THREE.Points` clouds using a soft round
+  sprite (`makeDot()` radial-gradient texture) — small spheres, lots of them,
+  cheap. The grid bits drift `+Z` toward the camera each frame and wrap.
+- **CTA hand-off** (`cta = smoother((p-0.82)/0.18)`): the visor's **LED-grid face**
+  fades in (billboarded), a **ring of emoji sticker billboards** scales/fades in,
+  and **reflective glass diamond gems** fade in and tumble. (Gems use a reflective
+  `MeshPhysicalMaterial` that catches the env + bloom — **not** transmission,
+  which refracted the dark background into near-black faceted shards over the
+  icons; crystals also clear by ~`p0.86` so nothing dark drifts past — see §3.)
+- **Founders letter** (`NewWorldExperience`): the CTA pill **"Letter from the
+  founders"** opens a modal (paper card on a solid dark backdrop, ✉ pill, ×/Esc
+  /backdrop close) with a **"Learn more about us →"** link to `/founders`. While
+  open, page scroll + the cinematic scrub are **locked** and the cinematic
+  **canvas is paused** (`frameloop="never"` via a `paused` prop) — a perf fix,
+  since a `backdrop-filter:blur` over a live animating scene was the original
+  jank. Arriving back via `/#letter` jumps to the end and re-opens the letter.
+- **Perf:** dedicated canvas DPR-capped, post intensity scales down on mobile,
+  DOF is desktop+full-motion only, particles are `Points`, halo is CSS, and the
+  canvas pauses behind the letter.
+
+### 2.8 Founders / About-us page (`/founders`) — `app/founders/page.tsx`
+- **Design:** dark page, "Letters from the founders / About us", **two
+  side-by-side light "paper" letter cards** (`md:grid-cols-2`) — **Bernard Lee**
+  (left) and **Ludovic Grandclement** (right) — with corner marks and a top
+  **"← Back"** that returns to **`/#letter`** (lands on the open letter at the
+  bottom of the journey, see §2.7).
+
 ### Global chrome
-- **Header** (`Header.tsx`): wordmark + Let's talk + Menu; flips colour over
-  `[data-theme='dark']` sections; collapses on mobile.
-- **Menu overlay** (`MenuOverlay.tsx`): full-screen clip-path nav.
-- **Cursor** (`Cursor.tsx`): **fluid dye trail** — a canvas paints a soft white
-  blob easing toward the pointer with a `destination-out` fade and velocity-
-  reactive radius, blended `mix-blend-mode: difference` so it inverts whatever's
-  beneath; crisp dot marks the exact pointer. Desktop / fine-pointer only.
+- **Header / Cursor — removed.** The top header (`Header.tsx`) and the custom
+  fluid cursor (`Cursor.tsx`) are **no longer mounted** in `layout.tsx` (the
+  component files are kept for easy restore). With the cursor gone, the native
+  pointer returns automatically — the `cursor:none` rule in `globals.css` only
+  applied under the `html.has-custom-cursor` class that the cursor used to add.
+- **Hidden native scrollbar** (`globals.css`): `scrollbar-width:none` +
+  `::-webkit-scrollbar{display:none}` so the `overflow:hidden` scroll-locks
+  (loader, letter, menu) never add/remove a gutter and shift layout.
+- **Menu overlay** (`MenuOverlay.tsx`): full-screen clip-path nav — still mounted
+  but currently unreachable without the header trigger.
 - **Corner marks** (`CornerMarks.tsx`): the "+" registration marks.
 
 ---
@@ -203,7 +283,11 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
 | **Sticky stacking context** | CTA copy hidden behind the canvas | The sticky layer creates a stacking context below the canvas (`z-5`); raise it (`z-20`) so DOM overlays paint in front. |
 | **Sticker double-transform** | Stickers flew off-screen | They were parented to the astronaut *and* had its world position copied in — remove the copy; let them inherit. |
 | **White text over white astronaut** | CTA heading hard to read | Strong `text-shadow` + ring-placed stickers clear of the heading band. |
-| **Headless WebGL capture** | `networkidle` never settles; screenshots hang on rAF | Launch Chrome with `--use-gl=angle --use-angle=swiftshader`; `waitUntil:'load'` + fixed waits + `animations:'disabled'`; lusion.co is scroll-jacked so drive with `mouse.wheel`, and use `window.lenis.scrollTo` for our own site. |
+| **`transmission` gems read black** | CTA diamond octahedra showed near-black faceted "shards" drifting over the icons | `MeshPhysicalMaterial` `transmission` refracts the *background* — over the dark scene that's black. Switched to a **reflective** glass material (env + bloom) and animate its opacity in; also clear the crystal cave before the icons ramp. |
+| **`backdrop-filter:blur` over a live canvas** | Founders letter felt janky | Blurring a full-screen, continuously-animating WebGL scene re-blurs every frame. Use a **solid** dark backdrop and **pause the canvas** (`frameloop="never"`) while the overlay is open. |
+| **`Points` look like squares** | "Particles are cubes" | Default GL points are square. Give `PointsMaterial` a soft round sprite (`makeDot` radial-gradient canvas texture) → little spheres; `Points` stays one draw call so counts can go up. |
+| **Preloader revealed before WebGL painted** | Flash of unrendered/black scene | Gate the reveal on `store.sceneReady` (first `useFrame` via `FirstFrameSignal`) + fonts + assets, not just a timer; grace fallback for canvas-less routes (see §2.0). |
+| **Headless WebGL capture** | `networkidle` never settles; screenshots hang on rAF | Launch Chrome with `--use-gl=angle --use-angle=swiftshader`; `waitUntil:'load'` + fixed waits + `animations:'disabled'`; lusion.co is scroll-jacked so drive with `mouse.wheel`, and use `window.lenis.scrollTo` for our own site. Don't detect "ready" via `overflow` (pre-hydration default is `visible`) — poll for `window.lenis`. |
 
 ---
 
@@ -231,6 +315,17 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
    avoids compiling every section's shaders on first load.
 9. **Respect the cheap wins for UX:** reduced-motion, DPR caps, mobile counts,
    offscreen video pausing, and graceful no-WebGL fallbacks.
+10. **Pause what you can't see.** Pausing the cinematic canvas (`frameloop="never"`)
+    behind the founders letter — and preferring a solid backdrop over
+    `backdrop-filter` — removed real jank. Don't animate hidden scenes.
+11. **Lean on `Points` for "more particles".** Round-sprite `Points` give many
+    soft particles in one draw call; instanced meshes are heavier per-particle.
+12. **Layer effects in CSS when you can.** The chromatic halo is a
+    `mix-blend-screen` radial-gradient overlay — full lusion look, zero GPU scene
+    cost, and trivially driven by `progress`.
+13. **Gate the reveal on real readiness.** Waiting for the first painted frame
+    (`sceneReady`) + fonts + assets (not a timer) stops the page showing
+    half-rendered.
 
 ---
 
@@ -243,8 +338,16 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
 | Hero gloss / camera / depth | `hero/JackPit.tsx` (material `roughness`/`envMapIntensity`, camera `fov`/`z`, `halfD`) + `hero/HeroEnv.tsx` |
 | Mouse-displacement feel | `hero/HeroCanvas.tsx` (vel gain/`max`, `strength` cap) + `lib/three/MouseDisplacementEffect.ts` (`uRadius`) |
 | Hero bokeh / colour mix | `hero/HeroCanvas.tsx` `<DepthOfField>` (`focusDistance`/`focalLength`/`bokehScale`) · `hero/JackPit.tsx` `colorBag` weights |
-| Astronaut depth / pop | `world/AstronautJourney.tsx` (`START`, `FAR`, `NEAR`, `POP_AT`) |
-| CTA take-over timing | `AstronautJourney.tsx` (`cta = smoother((p-0.8)/0.2)`) + `NewWorld.tsx` timeline |
+| Astronaut depth / pop (inline `/demo`) | `world/AstronautJourney.tsx` (`START`, `FAR`, `NEAR`, `POP_AT`) |
+| CTA take-over timing (inline `/demo`) | `AstronautJourney.tsx` (`cta = smoother((p-0.8)/0.2)`) + `NewWorld.tsx` timeline |
+| Landing cinematic depth / pop / fades | `world/CinematicJourney.tsx` (`START/FAR/NEAR/POP_AT`, `gridFade`/`crystalFade`/`starFade`, `cta`) |
+| Auto-scroll speed / resume | `world/NewWorldExperience.tsx` (`AUTO_FULL_SEC`, `IDLE_MS`) |
+| Progress rail length / look | `NewWorldExperience.tsx` rail div (`12vh`, track/thumb colors) + `onUpdate` (`*76`) |
+| Chromatic halo size / ramp / colors | `NewWorldExperience.tsx` halo div (`92vmin`, gradient stops) + `onUpdate` (`progress/0.5`) |
+| Cinematic particles (bits/stars/sparkles) | `CinematicJourney.tsx` (`makeDot`, `size`, counts in `GridTunnel`/`Starfield`/`SparkleField`) |
+| CTA gems / stickers / LED visor | `CinematicJourney.tsx` (`DiamondCloud`, `StickerCloud`, `makeLEDFace`) |
+| Founders letter copy / link | `NewWorldExperience.tsx` modal · page at `app/founders/page.tsx` |
+| Preloader timing / ring | `layout/Preloader.tsx` (`MIN_MS`/`SCENE_GRACE_MS`/`MAX_MS`, `PROG_R`/`SPIN_R`) |
 | Card tilt strength | `hooks/useTilt.ts` (`max`, `perspective`) |
 | Cursor trail length / size | `layout/Cursor.tsx` (blob alpha `0.2`, fade `0.12`, `baseR`) |
 | Palette / fonts | `app/globals.css` tokens; `app/layout.tsx` fonts |
