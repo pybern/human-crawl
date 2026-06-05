@@ -28,6 +28,43 @@ const launchOpts = {
   ],
 };
 
+/**
+ * Record a video of the hero while sweeping the pointer through the window
+ * (screenshotting during heavy animation hangs swiftshader, so we record +
+ * extract frames instead — same approach as the reference capture).
+ */
+async function recordInteraction(browser) {
+  const dir = path.join(OUT, "vid");
+  mkdirSync(dir, { recursive: true });
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 1,
+    recordVideo: { dir, size: { width: 1440, height: 900 } },
+  });
+  const page = await context.newPage();
+  await page.goto(URL, { waitUntil: "load", timeout: 60000 }).catch(() => {});
+  await page.waitForTimeout(11000); // reveal + settle
+
+  const cx = 720,
+    cy = 560,
+    ax = 440,
+    ay = 240;
+  // a few figure-8 passes to carve the pile
+  for (let i = 0; i <= 200; i++) {
+    const t = (i / 200) * Math.PI * 2 * 3;
+    await page.mouse.move(cx + Math.sin(t) * ax, cy + Math.sin(t * 2) * ay, {
+      steps: 1,
+    });
+    await page.waitForTimeout(16);
+  }
+  // park off-window and let the pile refill on camera
+  await page.mouse.move(40, 40);
+  await page.waitForTimeout(3000);
+  await page.close();
+  await context.close(); // flush video
+  console.log(`interaction video -> ${dir}`);
+}
+
 async function run() {
   mkdirSync(OUT, { recursive: true });
   let browser;
@@ -35,6 +72,12 @@ async function run() {
     browser = await chromium.launch({ executablePath: CHROME, ...launchOpts });
   } catch {
     browser = await chromium.launch(launchOpts);
+  }
+
+  if (args.video) {
+    await recordInteraction(browser);
+    await browser.close();
+    return;
   }
 
   // ---- Desktop ----

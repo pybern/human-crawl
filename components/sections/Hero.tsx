@@ -1,19 +1,25 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import CornerMarks from "@/components/layout/CornerMarks";
-import LazyView from "@/components/canvas/LazyView";
 import { useApp } from "@/lib/store";
-import JackPit from "@/components/sections/hero/JackPit";
+
+// The hero runs its own client-only canvas (with an EffectComposer for the
+// signature mouse-displacement ripple), so load it ssr-disabled.
+const HeroCanvas = dynamic(
+  () => import("@/components/sections/hero/HeroCanvas"),
+  { ssr: false }
+);
 
 /**
- * Hero — Phase 1 scaffold.
- * Establishes the layout (heading + rounded dark "window" + scroll cue) and a
- * working drei <View> anchored to the window. Phase 2 swaps the placeholder
- * geometry for the Rapier "jack pit" + stencil mask + mouse displacement.
+ * Hero — the interactive "jack pit".
+ * Heading + rounded dark "window" + scroll cue, with a dedicated WebGL canvas
+ * holding the glossy hollow-tube jack pile (custom physics) and the cursor
+ * mouse-displacement post pass.
  */
 export default function Hero() {
   const setCursorVariant = useApp((s) => s.setCursorVariant);
-  const isMobile = useApp((s) => s.isMobile);
+  const webglOk = useApp((s) => s.webglOk);
 
   return (
     <section
@@ -36,19 +42,17 @@ export default function Hero() {
           className="relative aspect-[4/5] w-full overflow-hidden rounded-[28px] md:aspect-[16/9]"
           style={{ background: "var(--window)" }}
         >
-          <LazyView
-            fallback={
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "radial-gradient(circle at 50% 60%, #2733ff 0%, #11131f 55%, #0b0b12 100%)",
-                }}
-              />
-            }
-          >
-            <JackPit mobile={isMobile} />
-          </LazyView>
+          {webglOk ? (
+            <HeroCanvas />
+          ) : (
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(circle at 50% 60%, #2733ff 0%, #11131f 55%, #0b0b12 100%)",
+              }}
+            />
+          )}
           <CornerMarks color="rgba(255,255,255,.5)" inset={14} />
         </div>
       </div>
