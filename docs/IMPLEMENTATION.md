@@ -96,6 +96,11 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
   fluid smear) plus a small radial **lens**, gaussian falloff, aspect-corrected.
   Desktop-only, disabled for reduced-motion. (Verified by forcing a fixed strong
   lens during dev.)
+- **Depth-of-field:** the same hero composer adds a subtle `DepthOfField` so the
+  front pile stays crisp and far pieces soften (matches the reference bokeh).
+- **Balanced palette:** colours are dealt from a weighted, shuffled bag
+  (`colorBag`) so every load shows a good cobalt/white/black/grey mix instead of
+  an occasional white-heavy random draw.
 - **Physics (custom, not a library):** a lightweight sim in `Pile`:
   - **Centre attraction** (not gravity) so the pile always fills the window and
     refills after the cursor carves through (`attract = 4`).
@@ -237,6 +242,7 @@ scripts/ capture-reference.mjs, capture-self.mjs, validate-cinematic.mjs
 | Jack shape (tube wall / bore / bevel) | `lib/three/jack.ts` (`arm`, `outerR`, `innerR`, `c`) + palette `JACK_COLORS` |
 | Hero gloss / camera / depth | `hero/JackPit.tsx` (material `roughness`/`envMapIntensity`, camera `fov`/`z`, `halfD`) + `hero/HeroEnv.tsx` |
 | Mouse-displacement feel | `hero/HeroCanvas.tsx` (vel gain/`max`, `strength` cap) + `lib/three/MouseDisplacementEffect.ts` (`uRadius`) |
+| Hero bokeh / colour mix | `hero/HeroCanvas.tsx` `<DepthOfField>` (`focusDistance`/`focalLength`/`bokehScale`) · `hero/JackPit.tsx` `colorBag` weights |
 | Astronaut depth / pop | `world/AstronautJourney.tsx` (`START`, `FAR`, `NEAR`, `POP_AT`) |
 | CTA take-over timing | `AstronautJourney.tsx` (`cta = smoother((p-0.8)/0.2)`) + `NewWorld.tsx` timeline |
 | Card tilt strength | `hooks/useTilt.ts` (`max`, `perspective`) |
