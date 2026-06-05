@@ -3,9 +3,7 @@ import { Space_Grotesk, Inter_Tight, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppProviders from "@/components/providers/AppProviders";
 import CanvasRoot from "@/components/canvas/CanvasRoot";
-import Header from "@/components/layout/Header";
 import MenuOverlay from "@/components/layout/MenuOverlay";
-import Cursor from "@/components/layout/Cursor";
 import Preloader from "@/components/layout/Preloader";
 
 const display = Space_Grotesk({
@@ -50,8 +48,6 @@ export default function RootLayout({
         <AppProviders>
           <Preloader />
           <CanvasRoot />
-          <Cursor />
-          <Header />
           <MenuOverlay />
           {children}
         </AppProviders>
