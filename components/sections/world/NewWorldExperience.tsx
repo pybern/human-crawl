@@ -30,7 +30,6 @@ export default function NewWorldExperience() {
   const t1 = useRef<HTMLHeadingElement>(null);
   const t2 = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
-  const fillRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const dirRef = useRef<1 | -1>(1);
   const webglOk = useApp((s) => s.webglOk);
@@ -120,10 +119,10 @@ export default function NewWorldExperience() {
       scrub: true,
       onUpdate: (self) => {
         cinema.progress = self.progress;
-        const fill = fillRef.current;
-        if (fill) fill.style.transform = `scaleY(${self.progress})`;
+        // move the thumb down its track as progress goes 0 -> 1 (thumb is ~24%
+        // of the track tall, so it travels across the remaining 76%).
         const thumb = thumbRef.current;
-        if (thumb) thumb.style.top = `${self.progress * 100}%`;
+        if (thumb) thumb.style.top = `${self.progress * 76}%`;
       },
     });
 
@@ -222,22 +221,17 @@ export default function NewWorldExperience() {
         <CornerMarks color="rgba(255,255,255,.35)" inset={24} />
       </div>
 
-      {/* scroll-progress rail (right) — fills as you progress through the journey */}
+      {/* scroll-progress rail (right) — short track + moving thumb, lusion-style */}
       <div
         aria-hidden
-        className="pointer-events-none fixed right-3 top-1/2 z-30 -translate-y-1/2 md:right-5"
-        style={{ height: "42vh", width: 3 }}
+        className="pointer-events-none fixed right-4 top-1/2 z-30 -translate-y-1/2 md:right-6"
+        style={{ height: "18vh", width: 4 }}
       >
-        <div className="absolute inset-0 rounded-full" style={{ background: "rgba(255,255,255,0.14)" }} />
-        <div
-          ref={fillRef}
-          className="absolute left-0 top-0 w-full origin-top rounded-full"
-          style={{ height: "100%", background: "#ffffff", transform: "scaleY(0)" }}
-        />
+        <div className="absolute inset-0 rounded-full" style={{ background: "rgba(255,255,255,0.18)" }} />
         <div
           ref={thumbRef}
-          className="absolute left-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ top: 0, background: "#ffffff", boxShadow: "0 0 10px rgba(255,255,255,0.8)" }}
+          className="absolute left-0 w-full rounded-full"
+          style={{ top: 0, height: "24%", background: "#ffffff", boxShadow: "0 0 8px rgba(255,255,255,0.6)" }}
         />
       </div>
 
