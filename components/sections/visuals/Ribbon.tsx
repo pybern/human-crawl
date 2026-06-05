@@ -14,20 +14,23 @@ export default function Ribbon() {
   const group = useRef<THREE.Group>(null);
 
   const geometry = useMemo(() => {
+    // A calm, flowing loop (gentle figure-8 with a little depth) rather than a
+    // tangled knot — closer to the elegant cobalt ribbon on the reference.
     const pts: THREE.Vector3[] = [];
-    const N = 12;
-    for (let i = 0; i <= N; i++) {
+    const N = 16;
+    for (let i = 0; i < N; i++) {
       const t = (i / N) * Math.PI * 2;
       pts.push(
         new THREE.Vector3(
-          Math.sin(t * 1.0) * 2.2,
-          Math.cos(t * 1.5) * 1.4,
-          Math.sin(t * 2.0) * 1.2
+          Math.sin(t) * 2.2,
+          Math.sin(t * 2) * 1.35,
+          Math.cos(t) * 1.0
         )
       );
     }
-    const curve = new THREE.CatmullRomCurve3(pts, true, "catmullrom", 0.6);
-    return new THREE.TubeGeometry(curve, 240, 0.34, 18, true);
+    const curve = new THREE.CatmullRomCurve3(pts, true, "catmullrom", 0.5);
+    // thicker, glossy tube
+    return new THREE.TubeGeometry(curve, 320, 0.42, 24, true);
   }, []);
 
   useFrame((state, delta) => {
@@ -42,18 +45,19 @@ export default function Ribbon() {
     <>
       <PerspectiveCamera makeDefault fov={42} position={[0, 0, 7]} />
       <StudioEnv intensity={0.7} />
-      <ambientLight intensity={0.5} />
+      <ambientLight intensity={0.45} />
       <directionalLight position={[4, 5, 6]} intensity={2.2} />
-      <directionalLight position={[-5, -2, 2]} intensity={0.7} color="#9aa6ff" />
+      {/* neutral fill (was a heavy blue tint that pushed the ribbon periwinkle) */}
+      <directionalLight position={[-5, -2, 2]} intensity={0.6} color="#dfe2ee" />
       <group ref={group}>
         <mesh geometry={geometry}>
           <meshPhysicalMaterial
-            color="#1a25ff"
-            metalness={0.2}
-            roughness={0.16}
+            color="#1226d2"
+            metalness={0.0}
+            roughness={0.15}
             clearcoat={1}
-            clearcoatRoughness={0.1}
-            envMapIntensity={1.2}
+            clearcoatRoughness={0.08}
+            envMapIntensity={1.15}
           />
         </mesh>
       </group>
