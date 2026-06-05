@@ -33,7 +33,7 @@ export default function FoundersPage() {
     >
       <div className="mx-auto max-w-6xl">
         <Link
-          href="/"
+          href="/#letter"
           className="inline-flex font-mono text-xs uppercase tracking-[0.3em] text-white/60 transition-colors hover:text-white"
         >
           ← Back

@@ -37,6 +37,7 @@ export default function NewWorldExperience() {
   const reducedMotion = useApp((s) => s.reducedMotion);
   const [letterOpen, setLetterOpen] = useState(false);
   const lockedByLetter = useRef(false);
+  const openedFromHashRef = useRef(false);
 
   // Lock page scroll (and pause the cinematic scrub) while the letter is open.
   // Guarded so it never touches scroll on mount (leaves the preloader's own
@@ -105,6 +106,22 @@ export default function NewWorldExperience() {
       if (resumeTimer) clearTimeout(resumeTimer);
     };
   }, [ready, letterOpen, reducedMotion]);
+
+  // Arriving via "← Back" from the About-us page (/#letter): jump to the END of
+  // the journey and re-open the founders letter, so back lands you on the letter
+  // at the bottom of the page.
+  useEffect(() => {
+    if (!ready || openedFromHashRef.current) return;
+    if (window.location.hash !== "#letter") return;
+    openedFromHashRef.current = true;
+    setLetterOpen(true); // gate auto-scroll + lock immediately
+    history.replaceState(null, "", window.location.pathname);
+    const lenis = (window as unknown as { lenis?: Lenis }).lenis;
+    const t = setTimeout(() => {
+      lenis?.scrollTo(lenis.limit, { immediate: true, force: true });
+    }, 140);
+    return () => clearTimeout(t);
+  }, [ready]);
 
   useEffect(() => {
     const root = rootRef.current;
