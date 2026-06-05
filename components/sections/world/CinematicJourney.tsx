@@ -598,6 +598,39 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
     return gradLineGeo(pts, GRID_NEAR, GRID_FAR);
   }, [perim]);
 
+  // Extra nested concentric ring layer (mid radius) → more depth layers.
+  const midRingsGeo = useMemo(() => {
+    const ms = s * 0.8;
+    const corners: [number, number][] = [[-ms, -ms], [ms, -ms], [ms, ms], [-ms, ms]];
+    const pts: THREE.Vector3[] = [];
+    for (let r = 0; r < rings; r++) {
+      const z = SPACE_END + r * spacing;
+      for (let c = 0; c < 4; c++) {
+        const [x0, y0] = corners[c];
+        const [x1, y1] = corners[(c + 1) % 4];
+        pts.push(new THREE.Vector3(x0, y0, z), new THREE.Vector3(x1, y1, z));
+      }
+    }
+    return gradLineGeo(pts, GRID_NEAR, GRID_FAR);
+  }, [rings, spacing]);
+
+  // Diagonal lattice bracing: connect each wall node to the next node on the
+  // following ring → a triangulated 3D truss (real depth, not flat walls).
+  const latticeGeo = useMemo(() => {
+    const P = perim.length;
+    const pts: THREE.Vector3[] = [];
+    for (let r = 0; r < rings - 1; r++) {
+      const z0 = SPACE_END + r * spacing;
+      const z1 = SPACE_END + (r + 1) * spacing;
+      for (let j = 0; j < P; j++) {
+        const [x0, y0] = perim[j];
+        const [x1, y1] = perim[(j + 1) % P];
+        pts.push(new THREE.Vector3(x0, y0, z0), new THREE.Vector3(x1, y1, z1));
+      }
+    }
+    return gradLineGeo(pts, GRID_NEAR2, GRID_FAR2);
+  }, [perim, rings, spacing]);
+
   // Additive + vertex-colour so the lines GLOW (picked up by bloom) and shift
   // hue down the tunnel, instead of flat single-colour squares.
   const mat = useMemo(() => {
@@ -678,12 +711,20 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
         <primitive object={mat} attach="material" />
       </lineSegments>
       <lineSegments>
+        <primitive object={midRingsGeo} attach="geometry" />
+        <primitive object={mat2} attach="material" />
+      </lineSegments>
+      <lineSegments>
         <primitive object={innerRingsGeo} attach="geometry" />
         <primitive object={mat2} attach="material" />
       </lineSegments>
       <lineSegments>
         <primitive object={longGeo} attach="geometry" />
         <primitive object={mat} attach="material" />
+      </lineSegments>
+      <lineSegments>
+        <primitive object={latticeGeo} attach="geometry" />
+        <primitive object={mat2} attach="material" />
       </lineSegments>
       <points ref={bitsRef} geometry={bitGeo} material={bitMat} frustumCulled={false} />
     </group>
