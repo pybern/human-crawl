@@ -186,6 +186,21 @@ export default function NewWorldExperience() {
         />
       )}
 
+      {/* signature chromatic halo — a large soft spectral lens ring centred on
+          the viewport (see docs/reference/desktop/d_08.png) */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed left-1/2 top-1/2 z-[8] -translate-x-1/2 -translate-y-1/2 mix-blend-screen"
+        style={{
+          width: "92vmin",
+          height: "92vmin",
+          borderRadius: "50%",
+          filter: "blur(8px)",
+          background:
+            "radial-gradient(circle, transparent 39%, rgba(255,60,90,0.10) 45%, rgba(255,160,60,0.10) 48%, rgba(120,255,150,0.13) 50%, rgba(60,170,255,0.15) 52%, rgba(150,90,255,0.12) 55%, rgba(120,160,255,0.05) 61%, transparent 69%)",
+        }}
+      />
+
       {/* journey text */}
       <div className="pointer-events-none fixed inset-0 z-20 flex items-center justify-center px-6 text-center">
         <h2
