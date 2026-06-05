@@ -130,18 +130,16 @@ export default function NewWorld() {
             className="font-display text-[8vw] font-medium leading-[0.98] tracking-tight md:text-[5.2vw]"
             style={{ opacity: 0 }}
           >
-            Push the frontier
+            Pushing frontiers
             <br />
-            ship it
-            <br />
-            responsibly.
+            responsibly
           </h2>
           <div
             ref={t2}
             className="absolute font-mono text-xs uppercase tracking-[0.35em] text-white"
             style={{ opacity: 0 }}
           >
-            AI &amp; tech · practical, governed, real
+            Practical, governed and secured AI journeys
           </div>
         </div>
 
