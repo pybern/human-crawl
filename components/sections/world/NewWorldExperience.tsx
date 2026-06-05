@@ -31,6 +31,7 @@ export default function NewWorldExperience() {
   const t2 = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
+  const haloRef = useRef<HTMLDivElement>(null);
   const dirRef = useRef<1 | -1>(1);
   const webglOk = useApp((s) => s.webglOk);
   const ready = useApp((s) => s.ready);
@@ -140,6 +141,12 @@ export default function NewWorldExperience() {
         // of the track tall, so it travels across the remaining 76%).
         const thumb = thumbRef.current;
         if (thumb) thumb.style.top = `${self.progress * 76}%`;
+        // halo gradually appears as the camera zooms in, then persists
+        const halo = haloRef.current;
+        if (halo) {
+          const h = Math.min(self.progress / 0.5, 1);
+          halo.style.opacity = String(h * h * (3 - 2 * h));
+        }
       },
     });
 
@@ -189,6 +196,7 @@ export default function NewWorldExperience() {
       {/* signature chromatic halo — a large soft spectral lens ring centred on
           the viewport (see docs/reference/desktop/d_08.png) */}
       <div
+        ref={haloRef}
         aria-hidden
         className="pointer-events-none fixed left-1/2 top-1/2 z-[8] -translate-x-1/2 -translate-y-1/2 mix-blend-screen"
         style={{
@@ -196,6 +204,7 @@ export default function NewWorldExperience() {
           height: "92vmin",
           borderRadius: "50%",
           filter: "blur(8px)",
+          opacity: 0,
           background:
             "radial-gradient(circle, transparent 39%, rgba(255,60,90,0.10) 45%, rgba(255,160,60,0.10) 48%, rgba(120,255,150,0.13) 50%, rgba(60,170,255,0.15) 52%, rgba(150,90,255,0.12) 55%, rgba(120,160,255,0.05) 61%, transparent 69%)",
         }}

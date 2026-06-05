@@ -94,7 +94,9 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
     // Progress-driven engagement: nothing but stars + astronaut at the start;
     // the grid fades in as you approach it, then hands off to the crystal cave.
     const gridFade = Math.min(smoother((p - 0.08) / 0.18), 1 - smoother((p - 0.6) / 0.16));
-    const crystalFade = smoother((p - 0.36) / 0.2) * ctaFade;
+    // clear the crystal cave a bit BEFORE the CTA icons ramp in, so dark shards
+    // don't drift across the sticker ring during the hand-off
+    const crystalFade = smoother((p - 0.36) / 0.2) * (1 - smoother((p - 0.79) / 0.07));
     const starFade = (0.4 + 0.6 * smoother(p / 0.16)) * ctaFade;
 
     const offset = astronautDepth(p);
@@ -141,6 +143,9 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
       diamondsRef.current.children.forEach((c, i) => {
         c.rotation.x += delta * (0.5 + (i % 3) * 0.2);
         c.rotation.y += delta * 0.4;
+        // fade the gems in with the CTA (otherwise opacity stayed 0)
+        const mat = (c as THREE.Mesh).material as THREE.Material & { opacity?: number };
+        if (mat && "opacity" in mat) mat.opacity = cta * 0.85;
       });
     }
 
@@ -301,15 +306,19 @@ function DiamondCloud({ mobile }: { mobile: boolean }) {
     <>
       {items.map((d, i) => (
         <mesh key={i} geometry={geo} position={d.pos} scale={d.scale}>
+          {/* reflective glass gem (no transmission — transmission refracted the
+              dark background to near-black faceted shards that drifted over the
+              icons). Catches the studio env + bloom so it reads as bright crystal. */}
           <meshPhysicalMaterial
             transparent
             opacity={0}
-            transmission={1}
-            thickness={0.6}
-            ior={2.4}
-            roughness={0.02}
             metalness={0}
-            color="#dfe6ff"
+            roughness={0.06}
+            clearcoat={1}
+            clearcoatRoughness={0.04}
+            envMapIntensity={1.8}
+            ior={1.5}
+            color="#cfe0ff"
             attach="material"
           />
         </mesh>
