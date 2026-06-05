@@ -11,6 +11,10 @@ export type AppState = {
   ready: boolean;
   setReady: (v: boolean) => void;
 
+  /** True once the main WebGL scene has rendered its first frame on screen. */
+  sceneReady: boolean;
+  setSceneReady: (v: boolean) => void;
+
   /** Normalised pointer in NDC-ish space (-1..1), y up. */
   pointer: { x: number; y: number };
   setPointer: (x: number, y: number) => void;
@@ -42,6 +46,9 @@ export const useApp = create<AppState>((set) => ({
 
   ready: false,
   setReady: (ready) => set({ ready }),
+
+  sceneReady: false,
+  setSceneReady: (sceneReady) => set({ sceneReady }),
 
   pointer: { x: 0, y: 0 },
   setPointer: (x, y) => set({ pointer: { x, y } }),

@@ -5,6 +5,7 @@ import { Vector2 } from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { DepthOfField, EffectComposer } from "@react-three/postprocessing";
 import JackPit from "@/components/sections/hero/JackPit";
+import FirstFrameSignal from "@/components/canvas/FirstFrameSignal";
 import { MouseDisplacementEffect } from "@/lib/three/MouseDisplacementEffect";
 import { useApp } from "@/lib/store";
 import { dprCap } from "@/lib/capabilities";
@@ -77,6 +78,7 @@ export default function HeroCanvas({ active = true }: { active?: boolean }) {
       dpr={dprCap(isMobile)}
       style={{ position: "absolute", inset: 0 }}
     >
+      <FirstFrameSignal />
       <JackPit mobile={isMobile} />
       {post && <HeroDisplacement />}
     </Canvas>

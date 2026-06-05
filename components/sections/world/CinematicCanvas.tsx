@@ -11,6 +11,7 @@ import {
   Vignette,
 } from "@react-three/postprocessing";
 import CinematicJourney from "@/components/sections/world/CinematicJourney";
+import FirstFrameSignal from "@/components/canvas/FirstFrameSignal";
 import { useApp } from "@/lib/store";
 import { dprCap } from "@/lib/capabilities";
 
@@ -37,6 +38,7 @@ export default function CinematicCanvas({ paused = false }: { paused?: boolean }
       style={{ position: "fixed", inset: 0, pointerEvents: "none" }}
     >
       <color attach="background" args={["#05060a"]} />
+      <FirstFrameSignal />
       <CinematicJourney mobile={isMobile} />
 
       <EffectComposer multisampling={isMobile ? 0 : 4}>
