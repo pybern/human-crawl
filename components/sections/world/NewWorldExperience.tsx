@@ -227,11 +227,12 @@ export default function NewWorldExperience() {
         className="pointer-events-none fixed right-4 top-1/2 z-30 -translate-y-1/2 md:right-6"
         style={{ height: "12vh", width: 4 }}
       >
-        <div className="absolute inset-0 rounded-full" style={{ background: "rgba(255,255,255,0.18)" }} />
+        {/* dark track keeps it visible over bright scene parts; muted thumb stays subtle */}
+        <div className="absolute inset-0 rounded-full" style={{ background: "rgba(0,0,0,0.4)" }} />
         <div
           ref={thumbRef}
           className="absolute left-0 w-full rounded-full"
-          style={{ top: 0, height: "24%", background: "#ffffff", boxShadow: "0 0 8px rgba(255,255,255,0.6)" }}
+          style={{ top: 0, height: "24%", background: "rgba(220,224,235,0.6)" }}
         />
       </div>
 
@@ -314,6 +315,15 @@ export default function NewWorldExperience() {
           <p className="mt-8 font-display text-2xl font-medium tracking-tight">
             — Bernard &amp; Ludo
           </p>
+
+          <Link
+            href="/founders"
+            onClick={() => setLetterOpen(false)}
+            className="pill mt-8 inline-flex"
+            style={{ background: "var(--ink)", color: "var(--bg-elevated)" }}
+          >
+            Learn more about us →
+          </Link>
 
           <CornerMarks color="rgba(10,10,12,.25)" inset={16} />
         </div>
