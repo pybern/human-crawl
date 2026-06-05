@@ -15,7 +15,7 @@ export default function AboutPage() {
           About the studio
         </p>
         <h1 className="mt-6 font-display text-[12vw] font-medium leading-[0.95] tracking-tight md:text-[6vw]">
-          Where creative ideas become immersive experiences
+          Where hard problems become shipped products
         </h1>
         <p className="mt-10 max-w-2xl text-xl leading-relaxed text-ink-soft md:text-2xl">
           Overnight Success combines AI, engineering and design to build digital

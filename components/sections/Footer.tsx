@@ -46,7 +46,7 @@ export default function Footer() {
                 </a>
               </li>
             ))}
-            <li className="mt-6">General enquiries</li>
+            <li className="mt-6">Say hello</li>
             <li>
               <a href="mailto:hello@onstud.io" className="text-ink">
                 hello@onstud.io

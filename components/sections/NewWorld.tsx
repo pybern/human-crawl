@@ -141,7 +141,7 @@ export default function NewWorld() {
             className="absolute font-mono text-xs uppercase tracking-[0.35em] text-white"
             style={{ opacity: 0 }}
           >
-            Real-time worlds · built for the browser
+            Big ideas · built to ship
           </div>
         </div>
 
@@ -171,7 +171,7 @@ export default function NewWorld() {
               className="pill"
               style={{ background: "var(--bg-elevated)", color: "var(--ink)" }}
             >
-              <span style={{ opacity: 0.6 }}>●</span> Continue to scroll
+              <span style={{ opacity: 0.6 }}>●</span> Get in touch
             </span>
           </a>
           <CornerMarks color="rgba(255,255,255,.35)" inset={24} />

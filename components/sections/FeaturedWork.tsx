@@ -17,14 +17,14 @@ export default function FeaturedWork() {
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <KineticHeading
-          text="Featured Work"
+          text="Selected Work"
           as="h2"
           className="font-display text-[13vw] font-medium leading-[0.95] tracking-tight md:text-[7vw]"
         />
         <Reveal className="max-w-sm" y={20}>
           <p className="font-mono text-xs uppercase leading-relaxed tracking-[0.12em] text-ink-soft">
-            A selection of immersive digital experiences created for ambitious
-            brands and forward-thinking teams.
+            A selection of AI, web, and research projects built for ambitious
+            teams and forward-thinking institutions.
           </p>
         </Reveal>
       </div>
@@ -43,7 +43,7 @@ export default function FeaturedWork() {
           className="pill"
           style={{ background: "var(--ink)", color: "var(--bg-elevated)" }}
         >
-          <span style={{ opacity: 0.6 }}>●</span> See all projects
+          <span style={{ opacity: 0.6 }}>●</span> View all work
         </a>
       </div>
     </section>

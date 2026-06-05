@@ -46,8 +46,8 @@ export default function Hero() {
     >
       <div className="mx-auto flex max-w-[1500px] flex-col gap-6 md:flex-row md:items-start md:justify-between md:gap-10">
         <div className="font-display text-[7vw] leading-[1.02] tracking-tight md:max-w-[60%] md:text-[2.6vw]">
-          We create 3D visual storytelling and interactive web experiences that
-          help brands stand out
+          We build AI, web, and cutting-edge research projects — on top of many
+          things, but most importantly to solve real problems
         </div>
       </div>
 

@@ -228,7 +228,7 @@ export default function NewWorldExperience() {
           className="absolute font-mono text-xs uppercase tracking-[0.35em] text-white"
           style={{ opacity: 0 }}
         >
-          Real-time worlds · built for the browser
+          Big ideas · built to ship
         </div>
       </div>
 

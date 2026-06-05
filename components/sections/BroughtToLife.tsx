@@ -15,7 +15,7 @@ export default function BroughtToLife() {
       style={{ background: "var(--bg)" }}
     >
       <KineticHeading
-        text="Bold Ideas, Brought to Life"
+        text="Hard Problems, Solved Well"
         as="h2"
         className="font-display text-[12vw] font-medium leading-[0.95] tracking-tight md:text-[8vw]"
       />
@@ -49,10 +49,10 @@ export default function BroughtToLife() {
           stagger
         >
           <p className="text-xl leading-relaxed text-ink md:text-2xl">
-            We combine design, motion, 3D, and development to create digital
-            experiences that feel visually striking and technically seamless.
-            From campaign launches to immersive brand worlds, we build work that
-            captures attention and invites interaction.
+            We combine applied AI, solid engineering, and design to take
+            ambitious ideas from prototype to production. Across AI, web
+            development, and research projects, we build dependable software that
+            solves real problems — not just demos that look good.
           </p>
           <div>
             <a
@@ -62,7 +62,7 @@ export default function BroughtToLife() {
               className="pill"
               style={{ background: "var(--ink)", color: "var(--bg-elevated)" }}
             >
-              <span style={{ opacity: 0.6 }}>●</span> Our approach
+              <span style={{ opacity: 0.6 }}>●</span> How we work
             </a>
           </div>
         </Reveal>
