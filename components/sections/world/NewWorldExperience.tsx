@@ -141,10 +141,10 @@ export default function NewWorldExperience() {
       {/* persistent chrome: back link + asset attribution */}
       <div className="pointer-events-none fixed inset-x-0 bottom-5 z-20 flex items-center justify-between px-6 md:px-10">
         <Link
-          href="/"
+          href="/demo"
           className="pointer-events-auto font-mono text-[0.65rem] uppercase tracking-[0.3em] text-white/60 transition-colors hover:text-white"
         >
-          ← Back home
+          View the site →
         </Link>
         <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-white/40">
           Astronaut by Poly · CC-BY

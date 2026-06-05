@@ -4,10 +4,10 @@ import { useEffect } from "react";
 import { useApp } from "@/lib/store";
 
 const LINKS = [
-  { label: "Home", href: "#top" },
+  { label: "Home", href: "/" },
   { label: "About Us", href: "/about" },
-  { label: "Projects", href: "#work" },
-  { label: "Contact", href: "#contact" },
+  { label: "Projects", href: "/demo#work" },
+  { label: "Contact", href: "/demo#contact" },
   { label: "Labs", href: "#" },
 ];
 

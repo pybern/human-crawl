@@ -40,7 +40,7 @@ export default function Header() {
       style={{ color: fg, transition: "color 0.5s var(--easing)" }}
     >
       <a
-        href="#top"
+        href="/"
         onMouseEnter={hover}
         onMouseLeave={leave}
         className="font-display text-lg font-bold tracking-tight md:text-xl"
@@ -63,7 +63,7 @@ export default function Header() {
         </button>
 
         <a
-          href="#contact"
+          href="/demo#contact"
           onMouseEnter={hover}
           onMouseLeave={leave}
           className="pill hidden md:inline-flex"

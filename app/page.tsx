@@ -1,19 +1,12 @@
-import Hero from "@/components/sections/Hero";
-import BroughtToLife from "@/components/sections/BroughtToLife";
-import PlayReel from "@/components/sections/PlayReel";
-import FeaturedWork from "@/components/sections/FeaturedWork";
-import NewWorld from "@/components/sections/NewWorld";
-import Footer from "@/components/sections/Footer";
+import type { Metadata } from "next";
+import NewWorldExperience from "@/components/sections/world/NewWorldExperience";
+
+export const metadata: Metadata = {
+  title: "Step into a new world — LUSION (reproduction)",
+  description:
+    "A higher-detail cinematic landing: an astronaut flies through a glowing refractive crystal world toward a sticker-filled call to action. Built with React Three Fiber + post-processing.",
+};
 
 export default function Home() {
-  return (
-    <main className="relative">
-      <Hero />
-      <BroughtToLife />
-      <PlayReel />
-      <FeaturedWork />
-      <NewWorld />
-      <Footer />
-    </main>
-  );
+  return <NewWorldExperience />;
 }
