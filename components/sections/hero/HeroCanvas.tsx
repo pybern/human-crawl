@@ -56,7 +56,7 @@ function HeroDisplacement() {
   );
 }
 
-export default function HeroCanvas() {
+export default function HeroCanvas({ active = true }: { active?: boolean }) {
   const isMobile = useApp((s) => s.isMobile);
   const reducedMotion = useApp((s) => s.reducedMotion);
   // displacement is desktop-only and respects reduced-motion
@@ -64,6 +64,8 @@ export default function HeroCanvas() {
 
   return (
     <Canvas
+      // pause the loop (physics + post) when the hero is scrolled out of view
+      frameloop={active ? "always" : "never"}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       dpr={dprCap(isMobile)}
       style={{ position: "absolute", inset: 0 }}

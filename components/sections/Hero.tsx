@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useRef, useState } from "react";
 import CornerMarks from "@/components/layout/CornerMarks";
 import { useApp } from "@/lib/store";
 
@@ -21,6 +22,22 @@ export default function Hero() {
   const setCursorVariant = useApp((s) => s.setCursorVariant);
   const webglOk = useApp((s) => s.webglOk);
 
+  // Pause the hero canvas' render loop (physics + post pass) once the window
+  // scrolls out of view, so it isn't burning frames while you're deep in the
+  // page. Stays mounted (no re-seed / re-compile) — just stops ticking.
+  const windowRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(true);
+  useEffect(() => {
+    const el = windowRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { rootMargin: "200px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
     <section
       id="top"
@@ -37,13 +54,14 @@ export default function Hero() {
       {/* The WebGL window */}
       <div className="mx-auto mt-8 max-w-[1500px]">
         <div
+          ref={windowRef}
           onMouseEnter={() => setCursorVariant("drag")}
           onMouseLeave={() => setCursorVariant("default")}
           className="relative aspect-[4/5] w-full overflow-hidden rounded-[28px] md:aspect-[16/9]"
           style={{ background: "var(--window)" }}
         >
           {webglOk ? (
-            <HeroCanvas />
+            <HeroCanvas active={inView} />
           ) : (
             <div
               className="absolute inset-0"
