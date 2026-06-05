@@ -31,9 +31,7 @@ export default function FeaturedWork() {
 
       <div className="mt-12 grid grid-cols-1 gap-x-8 gap-y-14 md:mt-20 md:grid-cols-2">
         {PROJECTS.map((p, i) => (
-          <Reveal key={p.title} y={50} delay={(i % 2) * 0.08}>
-            <ProjectCard project={p} />
-          </Reveal>
+          <ProjectCard key={p.title} project={p} index={i} />
         ))}
       </div>
 
