@@ -5,7 +5,7 @@ import CornerMarks from "@/components/layout/CornerMarks";
 export const metadata: Metadata = {
   title: "About us — Bernard & Ludo",
   description:
-    "Letters from the founders — Ludovic Grandclement and Bernard Lee: practical, governed AI and pragmatic engineering, built to solve real problems.",
+    "Letters from the founders — Bernard Lee and Ludovic Grandclement: pragmatic engineering and practical, governed AI, built to solve real problems.",
 };
 
 function Letter({ children }: { children: React.ReactNode }) {
@@ -32,7 +32,14 @@ export default function FoundersPage() {
       style={{ background: "var(--night)", color: "var(--bg-elevated)" }}
     >
       <div className="mx-auto max-w-6xl">
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-white/50">
+        <Link
+          href="/"
+          className="inline-flex font-mono text-xs uppercase tracking-[0.3em] text-white/60 transition-colors hover:text-white"
+        >
+          ← Back
+        </Link>
+
+        <p className="mt-10 font-mono text-xs uppercase tracking-[0.3em] text-white/50">
           Letters from the founders
         </p>
         <h1 className="mt-6 font-display text-[12vw] font-medium leading-[0.95] tracking-tight md:text-[4.5vw]">
@@ -40,6 +47,31 @@ export default function FoundersPage() {
         </h1>
 
         <div className="mt-12 grid gap-6 md:grid-cols-2 md:gap-8">
+          <Letter>
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-ink-soft">
+              Engineering &amp; technical delivery
+            </p>
+            <h2 className="mt-4 font-display text-3xl font-medium tracking-tight md:text-4xl">
+              Bernard Lee
+            </h2>
+            <div className="mt-6 space-y-5 text-base leading-relaxed md:text-lg">
+              <p>
+                Bernard Lee is an engineer with many years building and leading
+                technical projects across a wide range of technologies. He has
+                shipped products end to end — from low-level systems and data
+                infrastructure to web platforms and real-time, interactive 3D
+                experiences.
+              </p>
+              <p>
+                He enjoys turning ambiguous problems into reliable, well-crafted
+                software, and cares about pragmatic engineering, strong
+                fundamentals, and building the teams and tools that let good ideas
+                ship. Whatever the stack, the goal is the same: solve the real
+                problem, and solve it well.
+              </p>
+            </div>
+          </Letter>
+
           <Letter>
             <p className="font-mono text-xs uppercase tracking-[0.3em] text-ink-soft">
               AI strategy &amp; transformation
@@ -66,47 +98,8 @@ export default function FoundersPage() {
                 with measurable institutional impact.
               </p>
             </div>
-            <p className="mt-8 font-display text-xl font-medium tracking-tight">
-              — Ludo
-            </p>
-          </Letter>
-
-          <Letter>
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-ink-soft">
-              Engineering &amp; technical delivery
-            </p>
-            <h2 className="mt-4 font-display text-3xl font-medium tracking-tight md:text-4xl">
-              Bernard Lee
-            </h2>
-            <div className="mt-6 space-y-5 text-base leading-relaxed md:text-lg">
-              <p>
-                Bernard Lee is an engineer with many years building and leading
-                technical projects across a wide range of technologies. He has
-                shipped products end to end — from low-level systems and data
-                infrastructure to web platforms and real-time, interactive 3D
-                experiences.
-              </p>
-              <p>
-                He enjoys turning ambiguous problems into reliable, well-crafted
-                software, and cares about pragmatic engineering, strong
-                fundamentals, and building the teams and tools that let good ideas
-                ship. Whatever the stack, the goal is the same: solve the real
-                problem, and solve it well.
-              </p>
-            </div>
-            <p className="mt-8 font-display text-xl font-medium tracking-tight">
-              — Bernard
-            </p>
           </Letter>
         </div>
-
-        <Link
-          href="/"
-          className="pill mt-12 inline-flex"
-          style={{ background: "var(--bg-elevated)", color: "var(--ink)" }}
-        >
-          ← Back to the experience
-        </Link>
       </div>
     </main>
   );
