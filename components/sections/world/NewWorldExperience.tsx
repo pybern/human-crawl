@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import CornerMarks from "@/components/layout/CornerMarks";
@@ -30,6 +31,35 @@ export default function NewWorldExperience() {
   const t2 = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
   const webglOk = useApp((s) => s.webglOk);
+  const [letterOpen, setLetterOpen] = useState(false);
+  const lockedByLetter = useRef(false);
+
+  // Lock page scroll (and pause the cinematic scrub) while the letter is open.
+  // Guarded so it never touches scroll on mount (leaves the preloader's own
+  // loader-lock intact) — it only locks on open and restores on close.
+  useEffect(() => {
+    const root = document.documentElement;
+    const lenis = (window as unknown as { lenis?: Lenis }).lenis;
+    if (letterOpen) {
+      root.style.overflow = "hidden";
+      lenis?.stop();
+      lockedByLetter.current = true;
+    } else if (lockedByLetter.current) {
+      root.style.overflow = "";
+      lenis?.start();
+      lockedByLetter.current = false;
+    }
+  }, [letterOpen]);
+
+  // Close the letter on Escape.
+  useEffect(() => {
+    if (!letterOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLetterOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [letterOpen]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -130,11 +160,15 @@ export default function NewWorldExperience() {
         >
           Let&apos;s work together!
         </h2>
-        <a href="mailto:hello@lusion.co" className="pointer-events-auto mt-10 inline-flex">
+        <button
+          type="button"
+          onClick={() => setLetterOpen(true)}
+          className="pointer-events-auto mt-10 inline-flex"
+        >
           <span className="pill" style={{ background: "var(--bg-elevated)", color: "var(--ink)" }}>
-            <span style={{ opacity: 0.6 }}>●</span> Continue to scroll
+            <span style={{ opacity: 0.6 }}>✉</span> Letter from the founders
           </span>
-        </a>
+        </button>
         <CornerMarks color="rgba(255,255,255,.35)" inset={24} />
       </div>
 
@@ -149,6 +183,77 @@ export default function NewWorldExperience() {
         <span className="font-mono text-[0.6rem] uppercase tracking-[0.25em] text-white/40">
           Astronaut by Poly · CC-BY
         </span>
+      </div>
+
+      {/* Letter from the founders — modal */}
+      <div
+        aria-hidden={!letterOpen}
+        className="fixed inset-0 z-[80] flex items-center justify-center px-6"
+        style={{
+          opacity: letterOpen ? 1 : 0,
+          pointerEvents: letterOpen ? "auto" : "none",
+          transition: "opacity 0.5s var(--easing)",
+        }}
+      >
+        {/* backdrop */}
+        <div
+          aria-hidden
+          onClick={() => setLetterOpen(false)}
+          className="absolute inset-0"
+          style={{ background: "rgba(4,5,10,0.72)", backdropFilter: "blur(8px)" }}
+        />
+
+        {/* paper */}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="A letter from the founders"
+          className="relative w-full max-w-xl overflow-y-auto rounded-[20px] p-8 md:p-12"
+          style={{
+            maxHeight: "84vh",
+            background: "var(--bg-elevated)",
+            color: "var(--ink)",
+            transform: letterOpen ? "translateY(0) scale(1)" : "translateY(24px) scale(0.98)",
+            transition: "transform 0.5s var(--easing)",
+            boxShadow: "0 40px 120px rgba(0,0,0,0.6)",
+          }}
+        >
+          <button
+            type="button"
+            aria-label="Close letter"
+            onClick={() => setLetterOpen(false)}
+            className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full text-lg leading-none transition-colors"
+            style={{ background: "rgba(10,10,12,0.06)", color: "var(--ink)" }}
+          >
+            ×
+          </button>
+
+          <p className="font-mono text-xs uppercase tracking-[0.3em] text-ink-soft">
+            A letter from the founders
+          </p>
+
+          <div className="mt-6 space-y-5 text-lg leading-relaxed md:text-xl">
+            <p>Dear friend,</p>
+            <p>
+              We build on top of many things — the tools, ideas, and shoulders of
+              those who came before us. But most importantly, we build to solve
+              real problems.
+            </p>
+            <p>
+              Our work spans a range of solutions across{" "}
+              <strong>AI</strong>, <strong>web development</strong>, and{" "}
+              <strong>cutting-edge research projects</strong> — wherever a hard,
+              worthwhile problem is waiting to be solved well.
+            </p>
+            <p>Thanks for being here. Let&apos;s build something that matters.</p>
+          </div>
+
+          <p className="mt-8 font-display text-2xl font-medium tracking-tight">
+            — Bernard &amp; Ludo
+          </p>
+
+          <CornerMarks color="rgba(10,10,12,.25)" inset={16} />
+        </div>
       </div>
     </div>
   );
