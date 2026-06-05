@@ -35,18 +35,19 @@ await page.goto(URL, { waitUntil: "load", timeout: 60000 }).catch(() => {});
 await page.waitForTimeout(5000); // brief: scroll works early (like capture-self)
 
 const y = await page.evaluate(
-  ({ sel, frac }) => {
+  ({ sel, frac, off }) => {
     const vh = window.innerHeight;
     let target = vh * (Number(frac) || 1.05);
     if (sel) {
       const el = document.querySelector(sel);
       if (el) target = el.getBoundingClientRect().top + window.scrollY - 80;
+      if (off) target += Number(off);
     }
     if (window.lenis) window.lenis.scrollTo(target, { immediate: true });
     window.scrollTo(0, target);
     return target;
   },
-  { sel: args.sel, frac: args.frac }
+  { sel: args.sel, frac: args.frac, off: args.off }
 );
 console.log("scrolled to", y);
 // keep nudging the scroll while everything loads (lenis can reset it on ready)

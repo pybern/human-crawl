@@ -104,13 +104,22 @@ export default function NewWorld() {
           <AstronautJourney mobile={isMobile} />
         </LazyView>
 
-        {/* lens / chromatic vignette */}
+        {/* lens / chromatic-aberration ring vignette (the rainbow halo that
+            frames the reference cinematic) + edge darkening */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 mix-blend-screen"
+          style={{
+            background:
+              "radial-gradient(circle at center, transparent 52%, rgba(0,200,255,0.12) 57%, rgba(90,140,255,0.16) 60%, rgba(170,90,255,0.14) 63%, rgba(255,80,140,0.14) 66%, rgba(255,170,80,0.10) 69%, rgba(120,255,170,0.08) 72%, transparent 78%)",
+          }}
+        />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at center, transparent 42%, rgba(0,0,0,0.55) 100%), radial-gradient(circle at center, transparent 58%, rgba(120,140,255,0.10) 63%, rgba(255,90,120,0.08) 67%, transparent 72%)",
+              "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)",
           }}
         />
 
