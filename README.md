@@ -21,7 +21,9 @@ built with **Next.js 16 (App Router)**, **React 19**, **React Three Fiber**, **G
 | **Let's work together** | Smiley-helmet astronaut in a floating emoji-sticker cloud with cursor parallax |
 | **Footer + About teaser** | Contact / newsletter / socials + a dark "About Us" next-page teaser with a route transition |
 
-See [`docs/USER_JOURNEY.md`](docs/USER_JOURNEY.md) for a section-by-section breakdown of the
+See [`docs/IMPLEMENTATION.md`](docs/IMPLEMENTATION.md) for the comprehensive engineering
+reference (architecture, per-section design/animation/physics, gotchas, lessons learned),
+[`docs/USER_JOURNEY.md`](docs/USER_JOURNEY.md) for a section-by-section breakdown of the
 real site (with captured reference frames), and [`docs/comparison/`](docs/comparison) for
 reference-vs-reproduction screenshots.
 
