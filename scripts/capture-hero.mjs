@@ -44,7 +44,8 @@ async function run() {
       deviceScaleFactor: 1,
     });
     await page.goto(URL, { waitUntil: "load", timeout: 60000 }).catch(() => {});
-    await page.waitForTimeout(7000); // preloader reveal + settle
+    await page.evaluate(() => document.fonts.ready).catch(() => {});
+    await page.waitForTimeout(12000); // preloader reveal + shader compile + settle
     const shot = (name) =>
       page
         .screenshot({ path: `${OUT}/${name}.png`, timeout: 15000 })
@@ -53,26 +54,27 @@ async function run() {
 
     await shot("hero_settled");
 
-    // sweep the pointer through the window (figure-8) to smash the pile
-    const cx = 720,
-      cy = 560,
-      ax = 430,
-      ay = 230;
-    for (let i = 0; i <= 80; i++) {
-      const t = (i / 80) * Math.PI * 2 * 2;
-      await page.mouse.move(cx + Math.sin(t) * ax, cy + Math.sin(t * 2) * ay, {
-        steps: 1,
-      });
-      await page.waitForTimeout(14);
+    // The smash/refill shots stress swiftshader (screenshotting during heavy
+    // animation is slow), so they're opt-in via --full.
+    if (args.full) {
+      const cx = 720,
+        cy = 560,
+        ax = 430,
+        ay = 230;
+      for (let i = 0; i <= 80; i++) {
+        const t = (i / 80) * Math.PI * 2 * 2;
+        await page.mouse.move(cx + Math.sin(t) * ax, cy + Math.sin(t * 2) * ay, {
+          steps: 1,
+        });
+        await page.waitForTimeout(14);
+      }
+      await page.mouse.move(cx + 380, cy - 120);
+      await page.waitForTimeout(150);
+      await shot("hero_smash");
+      await page.mouse.move(60, 60);
+      await page.waitForTimeout(1800);
+      await shot("hero_refill");
     }
-    await page.mouse.move(cx + 380, cy - 120);
-    await page.waitForTimeout(150);
-    await shot("hero_smash");
-
-    // let it refill
-    await page.mouse.move(60, 60);
-    await page.waitForTimeout(1800);
-    await shot("hero_refill");
     await page.close();
   }
 

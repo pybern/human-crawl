@@ -25,9 +25,9 @@ export default function JackPit({ mobile = false }: { mobile?: boolean }) {
     <>
       <PerspectiveCamera makeDefault fov={38} position={[0, 0, 7]} />
       <HeroEnv intensity={0.85} />
-      <ambientLight intensity={0.35} />
+      <ambientLight intensity={0.25} />
       {/* neutral key for the crisp white window streaks */}
-      <directionalLight position={[3, 6, 7]} intensity={2.4} color="#ffffff" />
+      <directionalLight position={[3, 6, 7]} intensity={2.1} color="#ffffff" />
       {/* soft neutral fill (was a heavy blue tint that washed the palette) */}
       <directionalLight position={[-6, -2, 3]} intensity={0.5} color="#dfe2ee" />
       <Pile count={count} mobile={mobile} />
@@ -93,11 +93,14 @@ function Pile({ count, mobile }: { count: number; mobile: boolean }) {
   const material = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
+        // glossy plastic, not a mirror: a touch of roughness keeps the cobalt
+        // saturated instead of washing to periwinkle under the bright env,
+        // while clearcoat still gives the crisp window speculars.
         metalness: 0.0,
-        roughness: 0.07,
+        roughness: 0.16,
         clearcoat: 1,
-        clearcoatRoughness: 0.05,
-        envMapIntensity: 1.5,
+        clearcoatRoughness: 0.09,
+        envMapIntensity: 1.15,
         vertexColors: false,
         // hollow open tubes are thin shells — render both faces so the outer
         // walls always read as solid (no see-through) and the bores show their
