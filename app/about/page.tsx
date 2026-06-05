@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "About — LUSION (reproduction)",
+  title: "About — Overnight Success",
 };
 
 export default function AboutPage() {
@@ -18,10 +18,9 @@ export default function AboutPage() {
           Where creative ideas become immersive experiences
         </h1>
         <p className="mt-10 max-w-2xl text-xl leading-relaxed text-ink-soft md:text-2xl">
-          We combine design, motion, 3D and development to create digital
-          experiences that feel visually striking and technically seamless. This
-          page is a reproduction of the lusion.co experience, built with Next.js,
-          React Three Fiber and GSAP.
+          Overnight Success combines AI, engineering and design to build digital
+          experiences that feel visually striking and technically seamless — built
+          to solve real problems. Crafted with Next.js, React Three Fiber and GSAP.
         </p>
         <Link
           href="/"

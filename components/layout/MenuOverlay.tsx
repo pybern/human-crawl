@@ -69,7 +69,7 @@ export default function MenuOverlay() {
         <span className="font-mono uppercase tracking-widest text-xs">
           Subscribe to our newsletter
         </span>
-        <span>hello@lusion.co</span>
+        <span>hello@onstud.io</span>
       </div>
     </div>
   );

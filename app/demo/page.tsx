@@ -7,9 +7,9 @@ import NewWorld from "@/components/sections/NewWorld";
 import Footer from "@/components/sections/Footer";
 
 export const metadata: Metadata = {
-  title: "LUSION — 3D & Interactive Web Studio (reproduction)",
+  title: "Overnight Success — Creative & Engineering Studio",
   description:
-    "The full multi-section reproduction of the lusion.co site — physics hero, kinetic type, play reel, featured work, the cinematic journey and footer.",
+    "The full Overnight Success site — physics hero, kinetic type, play reel, featured work, the cinematic journey and footer.",
 };
 
 export default function DemoHome() {

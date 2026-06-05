@@ -46,7 +46,7 @@ export default function Header() {
         className="font-display text-lg font-bold tracking-tight md:text-xl"
         style={{ letterSpacing: "-0.01em" }}
       >
-        LUSION
+        Overnight Success
       </a>
 
       <div className="flex items-center gap-2 md:gap-3">

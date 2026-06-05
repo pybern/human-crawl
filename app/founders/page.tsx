@@ -3,7 +3,7 @@ import Link from "next/link";
 import CornerMarks from "@/components/layout/CornerMarks";
 
 export const metadata: Metadata = {
-  title: "About us — Bernard & Ludo",
+  title: "About us — Overnight Success",
   description:
     "Letters from the founders — Bernard Lee and Ludovic Grandclement: pragmatic engineering and practical, governed AI, built to solve real problems.",
 };

@@ -166,7 +166,7 @@ export default function NewWorld() {
           >
             Let&apos;s work together!
           </h2>
-          <a href="mailto:hello@lusion.co" className="pointer-events-auto mt-10 inline-flex">
+          <a href="mailto:hello@onstud.io" className="pointer-events-auto mt-10 inline-flex">
             <span
               className="pill"
               style={{ background: "var(--bg-elevated)", color: "var(--ink)" }}

@@ -24,13 +24,13 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LUSION — 3D & Interactive Web Studio (reproduction)",
+  title: "Overnight Success — Creative & Engineering Studio",
   description:
-    "A faithful reproduction of the lusion.co immersive WebGL experience, built with Next.js, React Three Fiber and GSAP. Works on desktop and mobile.",
+    "Overnight Success builds AI, web, and interactive experiences. We build on top of many things — most importantly, to solve real problems. onstud.io",
   openGraph: {
-    title: "LUSION — reproduction",
+    title: "Overnight Success",
     description:
-      "Immersive WebGL studio site reproduction — preloader, physics hero, kinetic type, cinematic 3D journey.",
+      "A studio building AI, web, and interactive experiences — preloader, physics hero, kinetic type, cinematic 3D journey.",
     type: "website",
   },
 };

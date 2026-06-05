@@ -25,7 +25,7 @@ export default function Footer() {
         style={{ background: "var(--bg-elevated)", color: "var(--ink)" }}
       >
         <div className="mb-12 font-display text-xl font-bold tracking-tight md:mb-16 md:text-2xl">
-          LUSION
+          Overnight Success
         </div>
 
         <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
@@ -48,14 +48,14 @@ export default function Footer() {
             ))}
             <li className="mt-6">General enquiries</li>
             <li>
-              <a href="mailto:hello@lusion.co" className="text-ink">
-                hello@lusion.co
+              <a href="mailto:hello@onstud.io" className="text-ink">
+                hello@onstud.io
               </a>
             </li>
             <li className="mt-4">New business</li>
             <li>
-              <a href="mailto:business@lusion.co" className="text-ink">
-                business@lusion.co
+              <a href="mailto:business@onstud.io" className="text-ink">
+                business@onstud.io
               </a>
             </li>
           </ul>
@@ -97,8 +97,8 @@ export default function Footer() {
         </div>
 
         <div className="mt-16 flex flex-col items-start justify-between gap-4 text-xs text-ink-soft md:flex-row md:items-center">
-          <span>© 2026 LUSION Creative Studio (reproduction)</span>
-          <span>R&amp;D: labs.lusion.co</span>
+          <span>© 2026 Overnight Success</span>
+          <span>R&amp;D: labs.onstud.io</span>
           <span>Built with ❤ using Next.js + R3F</span>
           <button
             onClick={toTop}
