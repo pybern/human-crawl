@@ -73,7 +73,7 @@ export default function NewWorldExperience() {
     const lenis = (window as unknown as { lenis?: Lenis }).lenis;
     if (!lenis) return;
 
-    const AUTO_FULL_SEC = 48; // time to traverse the whole page at constant speed
+    const AUTO_FULL_SEC = 36; // time to traverse the whole page at constant speed
     const IDLE_MS = 220; // resume auto-scroll after the user stops scrolling
     let resumeTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -225,7 +225,7 @@ export default function NewWorldExperience() {
       <div
         aria-hidden
         className="pointer-events-none fixed right-4 top-1/2 z-30 -translate-y-1/2 md:right-6"
-        style={{ height: "18vh", width: 4 }}
+        style={{ height: "12vh", width: 4 }}
       >
         <div className="absolute inset-0 rounded-full" style={{ background: "rgba(255,255,255,0.18)" }} />
         <div
