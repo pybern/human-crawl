@@ -21,7 +21,7 @@ import { dprCap } from "@/lib/capabilities";
  * vignette — which the shared `<View>` canvas can't do. Post intensity scales
  * down on mobile and respects reduced-motion.
  */
-export default function CinematicCanvas() {
+export default function CinematicCanvas({ paused = false }: { paused?: boolean }) {
   const isMobile = useApp((s) => s.isMobile);
   const reducedMotion = useApp((s) => s.reducedMotion);
 
@@ -29,6 +29,9 @@ export default function CinematicCanvas() {
 
   return (
     <Canvas
+      // Stop rendering the heavy scene + post stack while it's hidden behind an
+      // overlay (e.g. the founders letter) — saves a lot of GPU/battery.
+      frameloop={paused ? "never" : "always"}
       gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
       dpr={dprCap(isMobile)}
       style={{ position: "fixed", inset: 0, pointerEvents: "none" }}

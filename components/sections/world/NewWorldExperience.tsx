@@ -161,7 +161,7 @@ export default function NewWorldExperience() {
     >
       {/* dedicated WebGL canvas (fixed, pointer-events none) */}
       {webglOk ? (
-        <CinematicCanvas />
+        <CinematicCanvas paused={letterOpen} />
       ) : (
         <div
           className="fixed inset-0"
@@ -259,12 +259,13 @@ export default function NewWorldExperience() {
           transition: "opacity 0.5s var(--easing)",
         }}
       >
-        {/* backdrop */}
+        {/* backdrop — solid dark (no backdrop-filter: blurring the live canvas
+            every frame was the perf hit; the canvas is also paused while open) */}
         <div
           aria-hidden
           onClick={() => setLetterOpen(false)}
           className="absolute inset-0"
-          style={{ background: "rgba(4,5,10,0.72)", backdropFilter: "blur(8px)" }}
+          style={{ background: "rgba(4,5,10,0.9)" }}
         />
 
         {/* paper */}
