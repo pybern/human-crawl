@@ -37,6 +37,23 @@ function astronautDepth(p: number): number {
 const _v1 = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
 
+/** Fade a whole subtree by multiplying each material's stored base opacity. */
+function applyFade(group: THREE.Object3D | null, o: number) {
+  if (!group) return;
+  group.visible = o > 0.01;
+  if (o <= 0.01) return;
+  group.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    const mat = mesh.material as
+      | (THREE.Material & { opacity?: number; userData?: { baseOpacity?: number } })
+      | undefined;
+    if (mat && "opacity" in mat) {
+      mat.transparent = true;
+      mat.opacity = (mat.userData?.baseOpacity ?? 1) * o;
+    }
+  });
+}
+
 const EMOJIS = [
   "💀", "🍌", "💎", "😀", "⚡", "❤️", "🍭", "🛸",
   "🔥", "🌈", "👾", "🍦", "✨", "🎲", "🦴", "🤖",
@@ -46,7 +63,9 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
   const camRef = useRef<THREE.PerspectiveCamera>(null);
   const astro = useRef<THREE.Group>(null);
   const faceRef = useRef<THREE.Mesh>(null);
-  const worldsRef = useRef<THREE.Group>(null);
+  const starRef = useRef<THREE.Group>(null);
+  const gridRef = useRef<THREE.Group>(null);
+  const crystalRef = useRef<THREE.Group>(null);
   const stickersRef = useRef<THREE.Group>(null);
   const diamondsRef = useRef<THREE.Group>(null);
   const lightRef = useRef<THREE.PointLight>(null);
@@ -69,8 +88,14 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
     cam.position.set(Math.sin(t * 0.2) * 1.2, Math.cos(t * 0.16) * 0.8, camZ);
     cam.lookAt(Math.sin(t * 0.1) * 1.5, 0, camZ - 12);
 
-    const cta = smoother((p - 0.8) / 0.2);
-    const worldsOpacity = 1 - smoother((p - 0.72) / 0.18);
+    const cta = smoother((p - 0.82) / 0.18);
+    // worlds clear out as the CTA takes over
+    const ctaFade = 1 - smoother((p - 0.82) / 0.13);
+    // Progress-driven engagement: nothing but stars + astronaut at the start;
+    // the grid fades in as you approach it, then hands off to the crystal cave.
+    const gridFade = Math.min(smoother((p - 0.08) / 0.18), 1 - smoother((p - 0.6) / 0.16));
+    const crystalFade = smoother((p - 0.36) / 0.2) * ctaFade;
+    const starFade = (0.4 + 0.6 * smoother(p / 0.16)) * ctaFade;
 
     const offset = astronautDepth(p);
     const closeness = THREE.MathUtils.clamp((FAR - offset) / (FAR - NEAR), 0, 1);
@@ -95,17 +120,9 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
       faceRef.current.visible = cta > 0.01;
     }
 
-    if (worldsRef.current) {
-      worldsRef.current.visible = worldsOpacity > 0.01;
-      worldsRef.current.traverse((o) => {
-        const mesh = o as THREE.Mesh;
-        const mat = mesh.material as THREE.Material & { opacity?: number };
-        if (mat && "opacity" in mat) {
-          mat.transparent = true;
-          mat.opacity = (mat.userData?.baseOpacity ?? 1) * worldsOpacity;
-        }
-      });
-    }
+    applyFade(starRef.current, starFade);
+    applyFade(gridRef.current, gridFade);
+    applyFade(crystalRef.current, crystalFade);
 
     if (stickersRef.current) {
       const s = 0.6 + cta * 0.6;
@@ -144,7 +161,7 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
       const sizePx = Math.abs(_v1.y - _v2.y) * 0.5 * hPx;
       const dist = cam.position.distanceTo(a);
       (window as unknown as { __astroDepth?: Record<string, number> }).__astroDepth = {
-        p, offset, dist, sizePx, cta, worldsOpacity,
+        p, offset, dist, sizePx, cta, gridFade, crystalFade,
       };
     }
 
@@ -190,9 +207,13 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
         </group>
       </group>
 
-      <group ref={worldsRef}>
+      <group ref={starRef}>
         <Starfield />
+      </group>
+      <group ref={gridRef} visible={false}>
         <GridTunnel mobile={mobile} />
+      </group>
+      <group ref={crystalRef} visible={false}>
         <CrystalTunnel mobile={mobile} />
         <SparkleField mobile={mobile} />
       </group>
@@ -312,45 +333,57 @@ function Starfield() {
     g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     return g;
   }, []);
-  return (
-    <points geometry={geo} frustumCulled={false}>
-      <pointsMaterial size={0.14} color="#dfe6ff" sizeAttenuation transparent opacity={0.9} />
-    </points>
-  );
+  const mat = useMemo(() => {
+    const m = new THREE.PointsMaterial({
+      size: 0.14,
+      color: "#dfe6ff",
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.9,
+    });
+    m.userData.baseOpacity = 0.9;
+    return m;
+  }, []);
+  return <points geometry={geo} material={mat} frustumCulled={false} />;
 }
 
 /* ------------------------------------------------------------- grid tunnel */
 
 function GridTunnel({ mobile }: { mobile: boolean }) {
   const group = useRef<THREE.Group>(null);
-  const rings = mobile ? 18 : 30;
+  const rings = mobile ? 26 : 46;
   const s = 9;
-  const ringGeo = useMemo(() => {
-    const pts = [
-      new THREE.Vector3(-s, -s, 0), new THREE.Vector3(s, -s, 0),
-      new THREE.Vector3(s, s, 0), new THREE.Vector3(-s, s, 0),
-    ];
-    return new THREE.BufferGeometry().setFromPoints(pts);
-  }, []);
-  // longitudinal lines along the four tunnel edges
+  const squareGeo = (size: number) =>
+    new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(-size, -size, 0), new THREE.Vector3(size, -size, 0),
+      new THREE.Vector3(size, size, 0), new THREE.Vector3(-size, size, 0),
+    ]);
+  const ringGeo = useMemo(() => squareGeo(s), []);
+  const ringInnerGeo = useMemo(() => squareGeo(s * 0.6), []);
+  // longitudinal lines along the four corners + four edge midpoints
   const longGeo = useMemo(() => {
-    const corners = [
+    const anchors = [
       [-s, -s], [s, -s], [s, s], [-s, s],
+      [0, -s], [s, 0], [0, s], [-s, 0],
     ];
     const pts: THREE.Vector3[] = [];
-    for (const [x, y] of corners) {
+    for (const [x, y] of anchors) {
       pts.push(new THREE.Vector3(x, y, SPACE_END));
       pts.push(new THREE.Vector3(x, y, GRID_END));
     }
-    const g = new THREE.BufferGeometry().setFromPoints(pts);
-    return g;
+    return new THREE.BufferGeometry().setFromPoints(pts);
   }, []);
   const mat = useMemo(() => {
     const m = new THREE.LineBasicMaterial({ color: "#3a4cff", transparent: true, opacity: 0.55 });
     m.userData.baseOpacity = 0.55;
     return m;
   }, []);
-  const bits = mobile ? 40 : 90;
+  const mat2 = useMemo(() => {
+    const m = new THREE.LineBasicMaterial({ color: "#46c8ff", transparent: true, opacity: 0.4 });
+    m.userData.baseOpacity = 0.4;
+    return m;
+  }, []);
+  const bits = mobile ? 70 : 170;
   const bitsRef = useRef<THREE.InstancedMesh>(null);
   const bitGeo = useMemo(() => new THREE.BoxGeometry(0.18, 0.18, 0.18), []);
   const bitMat = useMemo(() => {
@@ -388,10 +421,22 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
   return (
     <group ref={group}>
       {Array.from({ length: rings }).map((_, i) => (
-        <lineLoop key={i} position={[0, 0, SPACE_END + i * spacing]}>
-          <primitive object={ringGeo} attach="geometry" />
-          <primitive object={mat} attach="material" />
-        </lineLoop>
+        <group key={i} position={[0, 0, SPACE_END + i * spacing]}>
+          <lineLoop>
+            <primitive object={ringGeo} attach="geometry" />
+            <primitive object={mat} attach="material" />
+          </lineLoop>
+          {/* rotated diamond ring → 8-point lattice */}
+          <lineLoop rotation={[0, 0, Math.PI / 4]}>
+            <primitive object={ringGeo} attach="geometry" />
+            <primitive object={mat2} attach="material" />
+          </lineLoop>
+          {/* inner concentric ring for depth */}
+          <lineLoop>
+            <primitive object={ringInnerGeo} attach="geometry" />
+            <primitive object={mat2} attach="material" />
+          </lineLoop>
+        </group>
       ))}
       <lineSegments>
         <primitive object={longGeo} attach="geometry" />
@@ -404,21 +449,33 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
 
 /* ----------------------------------------------------------- crystal tunnel */
 
-function CrystalTunnel({ mobile }: { mobile: boolean }) {
-  const count = mobile ? 80 : 220;
+/** One instanced layer of crystal shards radiating along the tunnel. */
+function CrystalLayer({
+  count, rMin, rMax, geoScale, scaleMin, scaleAdd, colors, emissive, rotSpeed,
+}: {
+  count: number;
+  rMin: number;
+  rMax: number;
+  geoScale: [number, number, number];
+  scaleMin: number;
+  scaleAdd: number;
+  colors: string[];
+  emissive: string;
+  rotSpeed: number;
+}) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const group = useRef<THREE.Group>(null);
   const geo = useMemo(() => {
     const g = new THREE.OctahedronGeometry(1, 0);
-    g.scale(0.34, 0.34, 1); // elongated shard / spike
+    g.scale(geoScale[0], geoScale[1], geoScale[2]);
     return g;
-  }, []);
+  }, [geoScale]);
   const mat = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({
       color: "#0a2a20",
-      emissive: "#27ff9d",
-      emissiveIntensity: 1.15,
-      roughness: 0.18,
+      emissive,
+      emissiveIntensity: 1.2,
+      roughness: 0.16,
       metalness: 0.25,
       transparent: true,
       opacity: 0.95,
@@ -426,27 +483,24 @@ function CrystalTunnel({ mobile }: { mobile: boolean }) {
     });
     m.userData.baseOpacity = 0.95;
     return m;
-  }, []);
+  }, [emissive]);
   const items = useMemo(() => {
     const up = new THREE.Vector3(0, 0, 1);
     const dir = new THREE.Vector3();
     const q = new THREE.Quaternion();
     return Array.from({ length: count }, () => {
       const ang = Math.random() * Math.PI * 2;
-      const r = 4 + Math.random() * 11; // tunnel wall radius
+      const r = rMin + Math.random() * (rMax - rMin);
       const z = GRID_END + Math.random() * (CRYSTAL_END - GRID_END);
       const pos = new THREE.Vector3(Math.cos(ang) * r, Math.sin(ang) * r, z);
-      // point the shard roughly inward (toward the tunnel axis) with jitter
       dir.set(-pos.x, -pos.y, (Math.random() - 0.5) * 6).normalize();
       q.setFromUnitVectors(up, dir);
-      // colour pops: mostly teal, some cyan, a few yellow (bloom makes them spark)
-      const roll = Math.random();
-      const color = roll > 0.86 ? "#ffe45e" : roll > 0.6 ? "#46f6ff" : "#27ff9d";
-      return { pos, quat: q.clone(), scale: 1.2 + Math.random() * 4.2, color };
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      return { pos, quat: q.clone(), scale: scaleMin + Math.random() * scaleAdd, color };
     });
-  }, [count]);
+  }, [count, rMin, rMax, scaleMin, scaleAdd, colors]);
   useFrame((state, delta) => {
-    if (group.current) group.current.rotation.z += delta * 0.03;
+    if (group.current) group.current.rotation.z += delta * rotSpeed;
     const mesh = meshRef.current;
     if (!mesh) return;
     if (!mesh.userData.init) {
@@ -473,10 +527,41 @@ function CrystalTunnel({ mobile }: { mobile: boolean }) {
   );
 }
 
+function CrystalTunnel({ mobile }: { mobile: boolean }) {
+  return (
+    <>
+      {/* big outer shards forming the cave walls */}
+      <CrystalLayer
+        count={mobile ? 110 : 300}
+        rMin={4}
+        rMax={15}
+        geoScale={[0.34, 0.34, 1]}
+        scaleMin={1.4}
+        scaleAdd={4.4}
+        colors={["#27ff9d", "#27ff9d", "#46f6ff", "#ffe45e"]}
+        emissive="#27ff9d"
+        rotSpeed={0.03}
+      />
+      {/* thin inner needles, counter-rotating + brighter, for depth/parallax */}
+      <CrystalLayer
+        count={mobile ? 60 : 150}
+        rMin={1.5}
+        rMax={8}
+        geoScale={[0.16, 0.16, 1.8]}
+        scaleMin={1.0}
+        scaleAdd={3.0}
+        colors={["#79ffe1", "#46f6ff", "#b6ff5e"]}
+        emissive="#46f6ff"
+        rotSpeed={-0.05}
+      />
+    </>
+  );
+}
+
 /* ---------------------------------------------------------------- sparkles */
 
 function SparkleField({ mobile }: { mobile: boolean }) {
-  const count = mobile ? 120 : 320;
+  const count = mobile ? 180 : 520;
   const geo = useMemo(() => {
     const N = count;
     const pos = new Float32Array(N * 3);
