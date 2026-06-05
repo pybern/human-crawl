@@ -351,39 +351,80 @@ function Starfield() {
 
 function GridTunnel({ mobile }: { mobile: boolean }) {
   const group = useRef<THREE.Group>(null);
-  const rings = mobile ? 26 : 46;
+  const rings = mobile ? 36 : 64;
   const s = 9;
-  const squareGeo = (size: number) =>
-    new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(-size, -size, 0), new THREE.Vector3(size, -size, 0),
-      new THREE.Vector3(size, size, 0), new THREE.Vector3(-size, size, 0),
-    ]);
-  const ringGeo = useMemo(() => squareGeo(s), []);
-  const ringInnerGeo = useMemo(() => squareGeo(s * 0.6), []);
-  // longitudinal lines along the four corners + four edge midpoints
-  const longGeo = useMemo(() => {
-    const anchors = [
-      [-s, -s], [s, -s], [s, s], [-s, s],
-      [0, -s], [s, 0], [0, s], [-s, 0],
-    ];
+  const spacing = (GRID_END - SPACE_END) / rings;
+
+  // Subdivided perimeter of the square cross-section. Each node anchors a
+  // longitudinal line, so the four tube walls read as a fine, regular grid
+  // (the dense lusion "data tunnel" wireframe) rather than a bare box.
+  const perSide = mobile ? 4 : 7;
+  const perim = useMemo(() => {
+    const corners: [number, number][] = [[-s, -s], [s, -s], [s, s], [-s, s]];
+    const pts: [number, number][] = [];
+    for (let c = 0; c < 4; c++) {
+      const [x0, y0] = corners[c];
+      const [x1, y1] = corners[(c + 1) % 4];
+      for (let i = 0; i < perSide; i++) {
+        const f = i / perSide;
+        pts.push([x0 + (x1 - x0) * f, y0 + (y1 - y0) * f]);
+      }
+    }
+    return pts;
+  }, []);
+
+  // All transverse rings merged into ONE lineSegments geometry (cheap → lets us
+  // pack many more rings than per-ring <lineLoop> draw calls would allow).
+  const ringsGeo = useMemo(() => {
+    const corners: [number, number][] = [[-s, -s], [s, -s], [s, s], [-s, s]];
     const pts: THREE.Vector3[] = [];
-    for (const [x, y] of anchors) {
-      pts.push(new THREE.Vector3(x, y, SPACE_END));
-      pts.push(new THREE.Vector3(x, y, GRID_END));
+    for (let r = 0; r < rings; r++) {
+      const z = SPACE_END + r * spacing;
+      for (let c = 0; c < 4; c++) {
+        const [x0, y0] = corners[c];
+        const [x1, y1] = corners[(c + 1) % 4];
+        pts.push(new THREE.Vector3(x0, y0, z), new THREE.Vector3(x1, y1, z));
+      }
     }
     return new THREE.BufferGeometry().setFromPoints(pts);
-  }, []);
+  }, [rings, spacing]);
+
+  // Inner concentric diamond rings (rotated 45°) for layered depth, also merged.
+  const innerRingsGeo = useMemo(() => {
+    const si = s * 0.56;
+    const diamond: [number, number][] = [[0, -si], [si, 0], [0, si], [-si, 0]];
+    const pts: THREE.Vector3[] = [];
+    for (let r = 0; r < rings; r += 1) {
+      const z = SPACE_END + r * spacing;
+      for (let c = 0; c < 4; c++) {
+        const [x0, y0] = diamond[c];
+        const [x1, y1] = diamond[(c + 1) % 4];
+        pts.push(new THREE.Vector3(x0, y0, z), new THREE.Vector3(x1, y1, z));
+      }
+    }
+    return new THREE.BufferGeometry().setFromPoints(pts);
+  }, [rings, spacing]);
+
+  // Longitudinal lines through every perimeter node → the wall grid.
+  const longGeo = useMemo(() => {
+    const pts: THREE.Vector3[] = [];
+    for (const [x, y] of perim) {
+      pts.push(new THREE.Vector3(x, y, SPACE_END), new THREE.Vector3(x, y, GRID_END));
+    }
+    return new THREE.BufferGeometry().setFromPoints(pts);
+  }, [perim]);
+
   const mat = useMemo(() => {
-    const m = new THREE.LineBasicMaterial({ color: "#3a4cff", transparent: true, opacity: 0.55 });
-    m.userData.baseOpacity = 0.55;
+    const m = new THREE.LineBasicMaterial({ color: "#3a4cff", transparent: true, opacity: 0.5 });
+    m.userData.baseOpacity = 0.5;
     return m;
   }, []);
   const mat2 = useMemo(() => {
-    const m = new THREE.LineBasicMaterial({ color: "#46c8ff", transparent: true, opacity: 0.4 });
-    m.userData.baseOpacity = 0.4;
+    const m = new THREE.LineBasicMaterial({ color: "#46c8ff", transparent: true, opacity: 0.42 });
+    m.userData.baseOpacity = 0.42;
     return m;
   }, []);
-  const bits = mobile ? 70 : 170;
+  const bits = mobile ? 80 : 190;
   const bitsRef = useRef<THREE.InstancedMesh>(null);
   const bitGeo = useMemo(() => new THREE.BoxGeometry(0.18, 0.18, 0.18), []);
   const bitMat = useMemo(() => {
@@ -417,30 +458,19 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
       mesh.frustumCulled = false;
     }
   });
-  const spacing = (GRID_END - SPACE_END) / rings;
   return (
     <group ref={group}>
-      {Array.from({ length: rings }).map((_, i) => (
-        <group key={i} position={[0, 0, SPACE_END + i * spacing]}>
-          <lineLoop>
-            <primitive object={ringGeo} attach="geometry" />
-            <primitive object={mat} attach="material" />
-          </lineLoop>
-          {/* rotated diamond ring → 8-point lattice */}
-          <lineLoop rotation={[0, 0, Math.PI / 4]}>
-            <primitive object={ringGeo} attach="geometry" />
-            <primitive object={mat2} attach="material" />
-          </lineLoop>
-          {/* inner concentric ring for depth */}
-          <lineLoop>
-            <primitive object={ringInnerGeo} attach="geometry" />
-            <primitive object={mat2} attach="material" />
-          </lineLoop>
-        </group>
-      ))}
+      <lineSegments>
+        <primitive object={ringsGeo} attach="geometry" />
+        <primitive object={mat} attach="material" />
+      </lineSegments>
+      <lineSegments>
+        <primitive object={innerRingsGeo} attach="geometry" />
+        <primitive object={mat2} attach="material" />
+      </lineSegments>
       <lineSegments>
         <primitive object={longGeo} attach="geometry" />
-        <primitive object={mat} attach="material" />
+        <primitive object={mat2} attach="material" />
       </lineSegments>
       <instancedMesh ref={bitsRef} args={[bitGeo, bitMat, bits]} frustumCulled={false} />
     </group>
@@ -452,6 +482,7 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
 /** One instanced layer of crystal shards radiating along the tunnel. */
 function CrystalLayer({
   count, rMin, rMax, geoScale, scaleMin, scaleAdd, colors, emissive, rotSpeed,
+  orient = "out",
 }: {
   count: number;
   rMin: number;
@@ -462,6 +493,8 @@ function CrystalLayer({
   colors: string[];
   emissive: string;
   rotSpeed: number;
+  /** "out" → shards splay against the cave walls; "along" → streak down the tunnel. */
+  orient?: "out" | "along";
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const group = useRef<THREE.Group>(null);
@@ -493,12 +526,19 @@ function CrystalLayer({
       const r = rMin + Math.random() * (rMax - rMin);
       const z = GRID_END + Math.random() * (CRYSTAL_END - GRID_END);
       const pos = new THREE.Vector3(Math.cos(ang) * r, Math.sin(ang) * r, z);
-      dir.set(-pos.x, -pos.y, (Math.random() - 0.5) * 6).normalize();
+      if (orient === "along") {
+        // thin needles streaking down the tunnel near the walls (never cross the bore)
+        dir.set((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, 1).normalize();
+      } else {
+        // splay OUTWARD against the cave wall (+ a little z drift) so the
+        // centre bore stays clear instead of spiking toward the camera/astronaut
+        dir.set(pos.x, pos.y, (Math.random() - 0.5) * 5).normalize();
+      }
       q.setFromUnitVectors(up, dir);
       const color = colors[Math.floor(Math.random() * colors.length)];
       return { pos, quat: q.clone(), scale: scaleMin + Math.random() * scaleAdd, color };
     });
-  }, [count, rMin, rMax, scaleMin, scaleAdd, colors]);
+  }, [count, rMin, rMax, scaleMin, scaleAdd, colors, orient]);
   useFrame((state, delta) => {
     if (group.current) group.current.rotation.z += delta * rotSpeed;
     const mesh = meshRef.current;
@@ -530,29 +570,33 @@ function CrystalLayer({
 function CrystalTunnel({ mobile }: { mobile: boolean }) {
   return (
     <>
-      {/* big outer shards forming the cave walls */}
+      {/* big outer shards forming the cave walls — splayed outward so the centre
+          bore (where the astronaut flies) stays clear */}
       <CrystalLayer
-        count={mobile ? 110 : 300}
-        rMin={4}
-        rMax={15}
+        count={mobile ? 90 : 230}
+        rMin={8}
+        rMax={18}
         geoScale={[0.34, 0.34, 1]}
-        scaleMin={1.4}
-        scaleAdd={4.4}
+        scaleMin={1.2}
+        scaleAdd={3.2}
         colors={["#27ff9d", "#27ff9d", "#46f6ff", "#ffe45e"]}
         emissive="#27ff9d"
         rotSpeed={0.03}
+        orient="out"
       />
-      {/* thin inner needles, counter-rotating + brighter, for depth/parallax */}
+      {/* thin inner needles streaking down the tunnel (parallax) — kept off the
+          axis and aligned with the flight path so they never block the view */}
       <CrystalLayer
-        count={mobile ? 60 : 150}
-        rMin={1.5}
-        rMax={8}
-        geoScale={[0.16, 0.16, 1.8]}
-        scaleMin={1.0}
-        scaleAdd={3.0}
+        count={mobile ? 70 : 130}
+        rMin={5}
+        rMax={12}
+        geoScale={[0.14, 0.14, 2.4]}
+        scaleMin={1.4}
+        scaleAdd={3.6}
         colors={["#79ffe1", "#46f6ff", "#b6ff5e"]}
         emissive="#46f6ff"
         rotSpeed={-0.05}
+        orient="along"
       />
     </>
   );
@@ -569,7 +613,7 @@ function SparkleField({ mobile }: { mobile: boolean }) {
     const c = new THREE.Color();
     for (let i = 0; i < N; i++) {
       const ang = Math.random() * Math.PI * 2;
-      const r = Math.random() * 12;
+      const r = 2.5 + Math.random() * 11;
       pos[i * 3] = Math.cos(ang) * r;
       pos[i * 3 + 1] = Math.sin(ang) * r;
       pos[i * 3 + 2] = GRID_END + Math.random() * (CRYSTAL_END - GRID_END);
