@@ -144,7 +144,7 @@ export default function CinematicJourney({ mobile = false }: { mobile?: boolean 
       const sizePx = Math.abs(_v1.y - _v2.y) * 0.5 * hPx;
       const dist = cam.position.distanceTo(a);
       (window as unknown as { __astroDepth?: Record<string, number> }).__astroDepth = {
-        p, offset, dist, sizePx,
+        p, offset, dist, sizePx, cta, worldsOpacity,
       };
     }
 
