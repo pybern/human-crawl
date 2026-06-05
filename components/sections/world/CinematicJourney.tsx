@@ -501,6 +501,38 @@ function Starfield({ mobile = false }: { mobile?: boolean }) {
 
 /* ------------------------------------------------------------- grid tunnel */
 
+// Depth-gradient colours for the data-tunnel lines (near → far), assigned as
+// vertex colours so the grid reads as a glowing gradient, not flat squares.
+const GRID_NEAR = new THREE.Color("#5cf0ff");
+const GRID_FAR = new THREE.Color("#2e3cff");
+const GRID_NEAR2 = new THREE.Color("#8affd6");
+const GRID_FAR2 = new THREE.Color("#7a4cff");
+
+/** Line geometry with a per-vertex colour gradient + brightness falloff along z. */
+function gradLineGeo(
+  pts: THREE.Vector3[],
+  cNear: THREE.Color,
+  cFar: THREE.Color
+): THREE.BufferGeometry {
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  const col = new Float32Array(pts.length * 3);
+  const tmp = new THREE.Color();
+  for (let i = 0; i < pts.length; i++) {
+    const k = THREE.MathUtils.clamp(
+      (pts[i].z - SPACE_END) / (GRID_END - SPACE_END),
+      0,
+      1
+    );
+    tmp.copy(cNear).lerp(cFar, k);
+    const bri = 1 - 0.5 * k; // dim into the distance
+    col[i * 3] = tmp.r * bri;
+    col[i * 3 + 1] = tmp.g * bri;
+    col[i * 3 + 2] = tmp.b * bri;
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  return g;
+}
+
 function GridTunnel({ mobile }: { mobile: boolean }) {
   const group = useRef<THREE.Group>(null);
   const rings = mobile ? 36 : 64;
@@ -538,7 +570,7 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
         pts.push(new THREE.Vector3(x0, y0, z), new THREE.Vector3(x1, y1, z));
       }
     }
-    return new THREE.BufferGeometry().setFromPoints(pts);
+    return gradLineGeo(pts, GRID_NEAR, GRID_FAR);
   }, [rings, spacing]);
 
   // Inner concentric diamond rings (rotated 45°) for layered depth, also merged.
@@ -554,7 +586,7 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
         pts.push(new THREE.Vector3(x0, y0, z), new THREE.Vector3(x1, y1, z));
       }
     }
-    return new THREE.BufferGeometry().setFromPoints(pts);
+    return gradLineGeo(pts, GRID_NEAR2, GRID_FAR2);
   }, [rings, spacing]);
 
   // Longitudinal lines through every perimeter node → the wall grid.
@@ -563,17 +595,31 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
     for (const [x, y] of perim) {
       pts.push(new THREE.Vector3(x, y, SPACE_END), new THREE.Vector3(x, y, GRID_END));
     }
-    return new THREE.BufferGeometry().setFromPoints(pts);
+    return gradLineGeo(pts, GRID_NEAR, GRID_FAR);
   }, [perim]);
 
+  // Additive + vertex-colour so the lines GLOW (picked up by bloom) and shift
+  // hue down the tunnel, instead of flat single-colour squares.
   const mat = useMemo(() => {
-    const m = new THREE.LineBasicMaterial({ color: "#3a4cff", transparent: true, opacity: 0.5 });
-    m.userData.baseOpacity = 0.5;
+    const m = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    m.userData.baseOpacity = 0.95;
     return m;
   }, []);
   const mat2 = useMemo(() => {
-    const m = new THREE.LineBasicMaterial({ color: "#46c8ff", transparent: true, opacity: 0.42 });
-    m.userData.baseOpacity = 0.42;
+    const m = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    m.userData.baseOpacity = 0.75;
     return m;
   }, []);
   // Drifting "data bits": small round particles. A single THREE.Points cloud
@@ -637,7 +683,7 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
       </lineSegments>
       <lineSegments>
         <primitive object={longGeo} attach="geometry" />
-        <primitive object={mat2} attach="material" />
+        <primitive object={mat} attach="material" />
       </lineSegments>
       <points ref={bitsRef} geometry={bitGeo} material={bitMat} frustumCulled={false} />
     </group>
