@@ -26,6 +26,7 @@ export default function AppProviders({
   children: React.ReactNode;
 }) {
   const lenisRef = useRef<Lenis | null>(null);
+  const ready = useApp((s) => s.ready);
   const {
     setIsMobile,
     setReducedMotion,
@@ -65,6 +66,9 @@ export default function AppProviders({
       touchMultiplier: 1.4,
     });
     lenisRef.current = lenis;
+    // Start locked: keep the page pinned to the top while the preloader is up so
+    // it can't scroll/overflow behind the loader. Released once `ready` flips.
+    lenis.stop();
     // expose for debugging / e2e capture (harmless)
     (window as unknown as { lenis?: Lenis }).lenis = lenis;
 
@@ -86,6 +90,24 @@ export default function AppProviders({
       lenisRef.current = null;
     };
   }, []);
+
+  // Lock scrolling while the loader screen is showing (avoid overflow / a page
+  // that's scrolled mid-way behind the preloader), then release once ready.
+  useEffect(() => {
+    const root = document.documentElement;
+    const lenis = lenisRef.current;
+    if (ready) {
+      root.style.overflow = "";
+      lenis?.start();
+    } else {
+      root.style.overflow = "hidden";
+      window.scrollTo(0, 0);
+      lenis?.stop();
+    }
+    return () => {
+      root.style.overflow = "";
+    };
+  }, [ready]);
 
   // Global pointer tracking -> store (NDC + pixels).
   useEffect(() => {
