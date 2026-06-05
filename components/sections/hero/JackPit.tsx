@@ -53,8 +53,39 @@ type Body = {
 
 type Bounds = { halfW: number; halfH: number; halfD: number };
 
+/**
+ * A balanced, shuffled colour bag so every load shows a good cobalt/white/
+ * black/grey mix (pure per-body random sometimes came out white-heavy). Weights
+ * track the reference: cobalt + white lead, black + grey accent.
+ */
+function colorBag(count: number): number[] {
+  // weights per JACK_COLORS index (0,1 cobalt · 2,3 white · 4,5 black · 6 grey)
+  const weights: Array<[number, number]> = [
+    [0, 0.16],
+    [1, 0.16],
+    [2, 0.13],
+    [3, 0.13],
+    [4, 0.13],
+    [5, 0.13],
+    [6, 0.16],
+  ];
+  const bag: number[] = [];
+  for (const [idx, w] of weights) {
+    const n = Math.round(w * count);
+    for (let i = 0; i < n; i++) bag.push(idx);
+  }
+  while (bag.length < count) bag.push(0);
+  // Fisher–Yates shuffle
+  for (let i = bag.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [bag[i], bag[j]] = [bag[j], bag[i]];
+  }
+  return bag;
+}
+
 function buildBodies(count: number, bounds: Bounds): Body[] {
-  return Array.from({ length: count }, () => {
+  const bag = colorBag(count);
+  return Array.from({ length: count }, (_, i) => {
     // Big chunky pieces with some variation for depth read.
     const scale = 1.25 + Math.random() * 0.65;
     return {
@@ -78,8 +109,7 @@ function buildBodies(count: number, bounds: Bounds): Body[] {
       ),
       radius: 0.5 * scale,
       scale,
-      // random colour for a natural, non-repeating distribution
-      colorIdx: Math.floor(Math.random() * JACK_COLORS.length),
+      colorIdx: bag[i],
     };
   });
 }

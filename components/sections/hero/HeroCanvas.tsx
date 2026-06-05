@@ -3,7 +3,7 @@
 import { useMemo, useRef } from "react";
 import { Vector2 } from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { EffectComposer } from "@react-three/postprocessing";
+import { DepthOfField, EffectComposer } from "@react-three/postprocessing";
 import JackPit from "@/components/sections/hero/JackPit";
 import { MouseDisplacementEffect } from "@/lib/three/MouseDisplacementEffect";
 import { useApp } from "@/lib/store";
@@ -51,6 +51,13 @@ function HeroDisplacement() {
 
   return (
     <EffectComposer>
+      {/* subtle bokeh: keep the front pile crisp, soften the far pieces (like
+          the reference) */}
+      <DepthOfField
+        focusDistance={0.012}
+        focalLength={0.025}
+        bokehScale={2.2}
+      />
       <primitive object={effect} />
     </EffectComposer>
   );
