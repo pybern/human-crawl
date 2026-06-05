@@ -307,14 +307,17 @@ export default function NewWorldExperience({ wormhole = false }: { wormhole?: bo
           style={{ background: "rgba(4,5,10,0.9)" }}
         />
 
-        {/* paper */}
+        {/* paper — data-lenis-prevent so it scrolls internally on small/short
+            viewports (Lenis otherwise eats the wheel/touch) */}
         <div
           role="dialog"
           aria-modal="true"
           aria-label="A letter from the founders"
-          className="relative w-full max-w-xl overflow-y-auto rounded-[20px] p-8 md:p-12"
+          data-lenis-prevent
+          className="relative w-full max-w-xl overflow-y-auto overscroll-contain rounded-[20px] p-8 md:p-12"
           style={{
-            maxHeight: "84vh",
+            maxHeight: "85dvh",
+            WebkitOverflowScrolling: "touch",
             background: "var(--bg-elevated)",
             color: "var(--ink)",
             transform: letterOpen ? "translateY(0) scale(1)" : "translateY(24px) scale(0.98)",
