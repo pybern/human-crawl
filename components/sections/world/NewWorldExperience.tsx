@@ -30,7 +30,12 @@ export default function NewWorldExperience() {
   const t1 = useRef<HTMLHeadingElement>(null);
   const t2 = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
+  const fillRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const dirRef = useRef<1 | -1>(1);
   const webglOk = useApp((s) => s.webglOk);
+  const ready = useApp((s) => s.ready);
+  const reducedMotion = useApp((s) => s.reducedMotion);
   const [letterOpen, setLetterOpen] = useState(false);
   const lockedByLetter = useRef(false);
 
@@ -61,6 +66,47 @@ export default function NewWorldExperience() {
     return () => window.removeEventListener("keydown", onKey);
   }, [letterOpen]);
 
+  // Auto-scroll the cinematic. It starts moving DOWN by default; the next user
+  // scroll decides the direction from then on (scroll down -> auto down, scroll
+  // up -> auto up). Paused while the loader/letter are up and for reduced motion.
+  useEffect(() => {
+    if (!ready || letterOpen || reducedMotion) return;
+    const lenis = (window as unknown as { lenis?: Lenis }).lenis;
+    if (!lenis) return;
+
+    const AUTO_FULL_SEC = 48; // time to traverse the whole page at constant speed
+    const IDLE_MS = 220; // resume auto-scroll after the user stops scrolling
+    let resumeTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const drive = () => {
+      const target = dirRef.current > 0 ? lenis.limit : 0;
+      const dist = Math.abs(target - lenis.scroll);
+      if (dist < 2) return; // already at the boundary
+      lenis.scrollTo(target, {
+        duration: (dist / Math.max(lenis.limit, 1)) * AUTO_FULL_SEC,
+        easing: (t: number) => t, // linear -> constant speed
+      });
+    };
+
+    // fires on real user input (wheel + touch); cancels the auto animation, so
+    // we capture the direction and resume auto-scroll once the user settles.
+    const onUserScroll = (data: { deltaY: number }) => {
+      if (data.deltaY > 0) dirRef.current = 1;
+      else if (data.deltaY < 0) dirRef.current = -1;
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(drive, IDLE_MS);
+    };
+
+    lenis.on("virtual-scroll", onUserScroll);
+    const startTimer = setTimeout(drive, 80); // kick off the default downward auto
+
+    return () => {
+      lenis.off("virtual-scroll", onUserScroll);
+      clearTimeout(startTimer);
+      if (resumeTimer) clearTimeout(resumeTimer);
+    };
+  }, [ready, letterOpen, reducedMotion]);
+
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -74,6 +120,10 @@ export default function NewWorldExperience() {
       scrub: true,
       onUpdate: (self) => {
         cinema.progress = self.progress;
+        const fill = fillRef.current;
+        if (fill) fill.style.transform = `scaleY(${self.progress})`;
+        const thumb = thumbRef.current;
+        if (thumb) thumb.style.top = `${self.progress * 100}%`;
       },
     });
 
@@ -170,6 +220,25 @@ export default function NewWorldExperience() {
           </span>
         </button>
         <CornerMarks color="rgba(255,255,255,.35)" inset={24} />
+      </div>
+
+      {/* scroll-progress rail (right) — fills as you progress through the journey */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed right-3 top-1/2 z-30 -translate-y-1/2 md:right-5"
+        style={{ height: "42vh", width: 3 }}
+      >
+        <div className="absolute inset-0 rounded-full" style={{ background: "rgba(255,255,255,0.14)" }} />
+        <div
+          ref={fillRef}
+          className="absolute left-0 top-0 w-full origin-top rounded-full"
+          style={{ height: "100%", background: "#ffffff", transform: "scaleY(0)" }}
+        />
+        <div
+          ref={thumbRef}
+          className="absolute left-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{ top: 0, background: "#ffffff", boxShadow: "0 0 10px rgba(255,255,255,0.8)" }}
+        />
       </div>
 
       {/* persistent chrome: back link + asset attribution */}
