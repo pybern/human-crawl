@@ -34,10 +34,10 @@ function HeroDisplacement() {
     const dx = ux - prev.current.x;
     const dy = uy - prev.current.y;
     prev.current.set(ux, uy);
-    vel.current.x += (dx * 2.2 - vel.current.x) * 0.25;
-    vel.current.y += (dy * 2.2 - vel.current.y) * 0.25;
+    vel.current.x += (dx * 2.6 - vel.current.x) * 0.25;
+    vel.current.y += (dy * 2.6 - vel.current.y) * 0.25;
     vel.current.multiplyScalar(0.9);
-    const max = 0.09;
+    const max = 0.11;
     const vl = vel.current.length();
     if (vl > max) vel.current.multiplyScalar(max / vl);
     effect.vel.copy(vel.current);
@@ -46,7 +46,7 @@ function HeroDisplacement() {
     mouse.current.x += (ux - mouse.current.x) * 0.2;
     mouse.current.y += (uy - mouse.current.y) * 0.2;
     effect.mouse.copy(mouse.current);
-    effect.strength = Math.min(vl * 1.5, 0.05);
+    effect.strength = Math.min(vl * 1.5, 0.06);
   });
 
   return (

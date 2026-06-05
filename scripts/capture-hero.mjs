@@ -88,7 +88,7 @@ async function run() {
     });
     await page.goto(URL, { waitUntil: "load", timeout: 60000 }).catch(() => {});
     await page.evaluate(() => document.fonts.ready).catch(() => {});
-    await page.waitForTimeout(12000); // preloader reveal + shader compile + settle
+    await page.waitForTimeout(Number(args.wait) || 12000); // reveal + compile + settle
     const shot = (name) =>
       page
         .screenshot({ path: `${OUT}/${name}.png`, timeout: 15000 })
