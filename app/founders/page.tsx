@@ -81,21 +81,20 @@ export default function FoundersPage() {
             </h2>
             <div className="mt-6 space-y-5 text-base leading-relaxed md:text-lg">
               <p>
-                Ludovic Grandclement is an AI strategy and transformation leader
-                with over 10 years of experience across financial services,
-                central banking, data, and technology. He currently leads the
-                enterprise AI agenda at the Hong Kong Monetary Authority, covering
-                AI strategy, governance, platform delivery, adoption, and
-                productionisation.
+                Ludovic works at the intersection of AI, finance, and
+                institutional transformation. Over the past decade, he has helped
+                banks, insurers, airlines, and central banking teams move from
+                ideas and experiments to real technology capabilities — spanning
+                data platforms, supervisory technology, automation, and AI.
               </p>
               <p>
-                He has built multidisciplinary capabilities across GenAI,
-                Model-as-a-Service, MLOps, RAG tooling, vector databases, and
-                responsible AI governance. Previously, he led regional
-                transformation initiatives at Crédit Agricole CIB across APAC and
-                the Middle East, and held technology and digital roles at HKMA,
-                Sun Life, and Cathay Pacific. His focus is practical, governed AI
-                with measurable institutional impact.
+                Today, his focus is on making AI useful, safe, and scalable in
+                highly regulated environments. His work sits in the messy middle
+                between strategy and execution: where ambitious ideas meet legacy
+                systems, risk controls, stakeholder politics, and delivery
+                reality. He helps turn that complexity into practical AI
+                capabilities — shaping the platforms, governance, teams, and
+                adoption paths that allow people to trust, use, and build on them.
               </p>
             </div>
           </Letter>
