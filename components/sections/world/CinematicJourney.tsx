@@ -19,7 +19,8 @@ const SPACE_END = -34;
 const GRID_END = -80;
 const CRYSTAL_END = -128;
 
-const START = 7;
+// closer start so the suit fills the frame like the benchmark intro (d_05/06)
+const START = 5.2;
 const FAR = 18;
 const NEAR = 6.5;
 const POP_AT = 0.78;
@@ -199,6 +200,15 @@ export default function CinematicJourney({
       }
       tmp.lerp(colNight, cta);
       fogRef.current.color.copy(tmp);
+      // thicken the fog inside the cave (atmospheric depth — far shards melt
+      // into murk instead of floating flat), thin out again for the CTA
+      const caveK = THREE.MathUtils.clamp(
+        (GRID_END + 6 - camZ) / 18,
+        0,
+        1
+      );
+      fogRef.current.density =
+        THREE.MathUtils.lerp(0.02, 0.034, caveK) * (1 - cta * 0.55);
     }
   });
 
@@ -206,10 +216,14 @@ export default function CinematicJourney({
     <>
       <PerspectiveCamera ref={camRef} makeDefault fov={55} position={[0, 0, 12]} />
       <fogExp2 ref={fogRef} attach="fog" args={["#05060a", 0.02]} />
-      <StudioEnv intensity={0.5} />
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[3, 4, 6]} intensity={1.3} />
-      <pointLight ref={lightRef} intensity={70} color="#cfd6ff" distance={34} />
+      <StudioEnv intensity={0.8} />
+      {/* cinematic three-point rig: low ambient so shadows stay deep (the
+          benchmark suit is sun-lit against near-black), hard neutral key,
+          cool rim from behind to silhouette the suit, tracking fill light */}
+      <ambientLight intensity={0.28} />
+      <directionalLight position={[4, 6, 8]} intensity={2.6} color="#fff4e6" />
+      <directionalLight position={[-5, 2, -7]} intensity={1.7} color="#a8b8ff" />
+      <pointLight ref={lightRef} intensity={130} color="#dde4ff" distance={34} />
 
       <group ref={astro}>
         <Suspense fallback={null}>
@@ -471,42 +485,66 @@ function DiamondCloud({ mobile }: { mobile: boolean }) {
 /* --------------------------------------------------------------- starfield */
 
 function Starfield({ mobile = false }: { mobile?: boolean }) {
-  const geo = useMemo(() => {
-    const N = mobile ? 1600 : 2800; // more of them
+  // Real star fields have a wide magnitude spread — most stars faint, a few
+  // bright — and slight colour temperature variance (warm/cool). A uniform
+  // grid of identical dots is the giveaway that it's CG.
+  const starGeo = (N: number, spread: number) => {
     const pos = new Float32Array(N * 3);
+    const col = new Float32Array(N * 3);
+    const c = new THREE.Color();
     for (let i = 0; i < N; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 100;
       pos[i * 3 + 1] = (Math.random() - 0.5) * 64;
       pos[i * 3 + 2] = 16 - Math.random() * 160;
+      // power-law brightness: lots of dim stars, few bright ones
+      const mag = 0.25 + 0.75 * Math.pow(Math.random(), 2.2) * spread;
+      const warm = Math.random();
+      c.set(warm > 0.85 ? "#ffe9d0" : warm > 0.7 ? "#ffffff" : "#dfe6ff");
+      col[i * 3] = c.r * mag;
+      col[i * 3 + 1] = c.g * mag;
+      col[i * 3 + 2] = c.b * mag;
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    g.setAttribute("color", new THREE.BufferAttribute(col, 3));
     return g;
-  }, [mobile]);
-  const mat = useMemo(() => {
+  };
+  const dimGeo = useMemo(() => starGeo(mobile ? 1400 : 2500, 1), [mobile]);
+  const brightGeo = useMemo(() => starGeo(mobile ? 90 : 170, 2.2), [mobile]);
+  const mkMat = (size: number, opacity: number) => {
     const m = new THREE.PointsMaterial({
-      size: 0.1, // smaller, round particles
+      size,
       map: makeDot(),
-      color: "#dfe6ff",
+      vertexColors: true,
       sizeAttenuation: true,
       transparent: true,
       depthWrite: false,
-      opacity: 0.9,
+      opacity,
+      blending: THREE.AdditiveBlending,
     });
-    m.userData.baseOpacity = 0.9;
+    m.userData.baseOpacity = opacity;
     return m;
-  }, []);
-  return <points geometry={geo} material={mat} frustumCulled={false} />;
+  };
+  const dimMat = useMemo(() => mkMat(0.085, 0.9), []);
+  const brightMat = useMemo(() => mkMat(0.22, 1), []);
+  return (
+    <>
+      <points geometry={dimGeo} material={dimMat} frustumCulled={false} />
+      <points geometry={brightGeo} material={brightMat} frustumCulled={false} />
+    </>
+  );
 }
 
 /* ------------------------------------------------------------- grid tunnel */
 
 // Depth-gradient colours for the data-tunnel lines (near → far), assigned as
 // vertex colours so the grid reads as a glowing gradient, not flat squares.
-const GRID_NEAR = new THREE.Color("#5cf0ff");
-const GRID_FAR = new THREE.Color("#2e3cff");
-const GRID_NEAR2 = new THREE.Color("#8affd6");
-const GRID_FAR2 = new THREE.Color("#7a4cff");
+// Desaturated steel/teal — the benchmark tunnel is near-greyscale structure
+// with cool glints, not saturated neon blue (that reads "video game").
+const GRID_NEAR = new THREE.Color("#a8ccd8");
+const GRID_FAR = new THREE.Color("#39466b");
+const GRID_NEAR2 = new THREE.Color("#bce8d8");
+const GRID_FAR2 = new THREE.Color("#5c5c8a");
 
 /** Line geometry with a per-vertex colour gradient + brightness falloff along z. */
 function gradLineGeo(
@@ -632,27 +670,28 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
   }, [perim, rings, spacing]);
 
   // Additive + vertex-colour so the lines GLOW (picked up by bloom) and shift
-  // hue down the tunnel, instead of flat single-colour squares.
+  // hue down the tunnel. Kept restrained — the structure should be read mostly
+  // through the bright debris chips (like the reference), not the wireframe.
   const mat = useMemo(() => {
     const m = new THREE.LineBasicMaterial({
       vertexColors: true,
       transparent: true,
-      opacity: 0.95,
+      opacity: 0.55,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-    m.userData.baseOpacity = 0.95;
+    m.userData.baseOpacity = 0.55;
     return m;
   }, []);
   const mat2 = useMemo(() => {
     const m = new THREE.LineBasicMaterial({
       vertexColors: true,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.35,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-    m.userData.baseOpacity = 0.75;
+    m.userData.baseOpacity = 0.35;
     return m;
   }, []);
   // Drifting "data bits": small round particles. A single THREE.Points cloud
@@ -679,7 +718,7 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
     const m = new THREE.PointsMaterial({
       size: 0.12,
       map: dotTex,
-      color: "#9ab4ff",
+      color: "#cfe0ee",
       sizeAttenuation: true,
       transparent: true,
       depthWrite: false,
@@ -727,8 +766,89 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
         <primitive object={mat2} attach="material" />
       </lineSegments>
       <points ref={bitsRef} geometry={bitGeo} material={bitMat} frustumCulled={false} />
+      <DataChips mobile={mobile} />
     </group>
   );
+}
+
+/**
+ * Glitchy debris chips hugging the tunnel walls — clustered thin quads with a
+ * power-law brightness spread (mostly dim grey, a few hot white/teal glints
+ * that bloom catches). This is what makes the reference tunnel read as a
+ * broken, GLITCHING data structure instead of a clean vector wireframe.
+ */
+function DataChips({ mobile }: { mobile: boolean }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const count = mobile ? 260 : 720;
+  const s = 9;
+  const geo = useMemo(() => new THREE.BoxGeometry(1, 1, 0.05), []);
+  const mat = useMemo(() => {
+    const m = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    m.userData.baseOpacity = 0.9;
+    return m;
+  }, []);
+  const items = useMemo(() => {
+    // cluster centres along the four walls, chips scattered around them
+    const clusters = Array.from({ length: Math.max(24, Math.floor(count / 8)) }, () => ({
+      wall: Math.floor(Math.random() * 4),
+      u: (Math.random() - 0.5) * 2 * s,
+      z: SPACE_END + Math.random() * (GRID_END - SPACE_END),
+    }));
+    const e = new THREE.Euler();
+    const q = new THREE.Quaternion();
+    const c = new THREE.Color();
+    return Array.from({ length: count }, () => {
+      const cl = clusters[Math.floor(Math.random() * clusters.length)];
+      const u = cl.u + (Math.random() - 0.5) * 2.6;
+      const z = cl.z + (Math.random() - 0.5) * 3.4;
+      const inset = Math.random() * 0.7;
+      const pos = new THREE.Vector3();
+      // wall 0/1 = left/right (x = ∓s), wall 2/3 = bottom/top (y = ∓s)
+      if (cl.wall === 0) pos.set(-s + inset, u, z);
+      else if (cl.wall === 1) pos.set(s - inset, u, z);
+      else if (cl.wall === 2) pos.set(u, -s + inset, z);
+      else pos.set(u, s - inset, z);
+      // face inward + random roll around the wall normal
+      const roll = Math.random() * Math.PI;
+      if (cl.wall < 2) e.set(0, Math.PI / 2, roll);
+      else e.set(Math.PI / 2, 0, roll);
+      q.setFromEuler(e);
+      // power-law luminance: mostly dim debris, occasional hot glint
+      const lum = 0.18 + Math.pow(Math.random(), 3) * 2.4;
+      const roll2 = Math.random();
+      c.set(roll2 > 0.45 ? "#ffffff" : roll2 > 0.2 ? "#cfe4ff" : "#9fffe0");
+      return {
+        pos,
+        quat: q.clone(),
+        scale: new THREE.Vector3(
+          0.12 + Math.random() * 0.6,
+          0.06 + Math.random() * 0.3,
+          1
+        ),
+        color: new THREE.Color(c.r * lum, c.g * lum, c.b * lum),
+      };
+    });
+  }, [count]);
+  useFrame(() => {
+    const mesh = meshRef.current;
+    if (!mesh || mesh.userData.init) return;
+    const m = new THREE.Matrix4();
+    items.forEach((it, i) => {
+      m.compose(it.pos, it.quat, it.scale);
+      mesh.setMatrixAt(i, m);
+      mesh.setColorAt(i, it.color);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.frustumCulled = false;
+    mesh.userData.init = true;
+  });
+  return <instancedMesh ref={meshRef} args={[geo, mat, count]} frustumCulled={false} />;
 }
 
 /* ----------------------------------------------------------- crystal tunnel */
@@ -736,7 +856,7 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
 /** One instanced layer of crystal shards radiating along the tunnel. */
 function CrystalLayer({
   count, rMin, rMax, geoScale, scaleMin, scaleAdd, colors, emissive, rotSpeed,
-  orient = "out",
+  orient = "out", emissiveIntensity = 0.4,
 }: {
   count: number;
   rMin: number;
@@ -749,6 +869,7 @@ function CrystalLayer({
   rotSpeed: number;
   /** "out" → shards splay against the cave walls; "along" → streak down the tunnel. */
   orient?: "out" | "along";
+  emissiveIntensity?: number;
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const group = useRef<THREE.Group>(null);
@@ -758,19 +879,23 @@ function CrystalLayer({
     return g;
   }, [geoScale]);
   const mat = useMemo(() => {
+    // metallic, env-lit facets (the benchmark cave is a green METAL truss with
+    // specular glints, not uniformly glowing neon) — emissive only lifts the
+    // shadow side a touch; brightness comes from lights + env + sparkles
     const m = new THREE.MeshStandardMaterial({
       color: "#0a2a20",
       emissive,
-      emissiveIntensity: 1.2,
-      roughness: 0.16,
-      metalness: 0.25,
+      emissiveIntensity,
+      roughness: 0.3,
+      metalness: 0.65,
+      envMapIntensity: 1.4,
       transparent: true,
       opacity: 0.95,
       flatShading: true,
     });
     m.userData.baseOpacity = 0.95;
     return m;
-  }, [emissive]);
+  }, [emissive, emissiveIntensity]);
   const items = useMemo(() => {
     const up = new THREE.Vector3(0, 0, 1);
     const dir = new THREE.Vector3();
@@ -824,19 +949,50 @@ function CrystalLayer({
 function CrystalTunnel({ mobile }: { mobile: boolean }) {
   return (
     <>
+      {/* green key light inside the cave so the metallic facets actually catch
+          shaped light (instead of relying on flat emissive glow) */}
+      <pointLight
+        position={[0, 3, (GRID_END + CRYSTAL_END) / 2]}
+        intensity={160}
+        distance={70}
+        color="#46ffb0"
+      />
+      <pointLight
+        position={[-4, -5, GRID_END - 12]}
+        intensity={90}
+        distance={50}
+        color="#bfff7a"
+      />
       {/* big outer shards forming the cave walls — splayed outward so the centre
-          bore (where the astronaut flies) stays clear */}
+          bore (where the astronaut flies) stays clear. Mostly DARK greens (the
+          benchmark cave is black with shaped light, not a wall of flat teal) */}
       <CrystalLayer
-        count={mobile ? 90 : 230}
-        rMin={8}
+        count={mobile ? 100 : 250}
+        rMin={8.5}
         rMax={18}
-        geoScale={[0.34, 0.34, 1]}
-        scaleMin={1.2}
-        scaleAdd={3.2}
-        colors={["#27ff9d", "#27ff9d", "#46f6ff", "#ffe45e"]}
-        emissive="#27ff9d"
+        geoScale={[0.28, 0.28, 1]}
+        scaleMin={0.9}
+        scaleAdd={2.2}
+        colors={["#0d3a28", "#0d3a28", "#14543c", "#1f7a55", "#2fcf90"]}
+        emissive="#0f5a3c"
+        emissiveIntensity={0.3}
         rotSpeed={0.03}
         orient="out"
+      />
+      {/* long truss beams running down the tunnel — the benchmark cave reads as
+          scaffold/lattice structure, so cross the walls with thin members */}
+      <CrystalLayer
+        count={mobile ? 60 : 150}
+        rMin={7}
+        rMax={16}
+        geoScale={[0.07, 0.07, 5]}
+        scaleMin={1.2}
+        scaleAdd={2.4}
+        colors={["#16543c", "#0f4530", "#1f7a55"]}
+        emissive="#0f5a3c"
+        emissiveIntensity={0.25}
+        rotSpeed={0.018}
+        orient="along"
       />
       {/* thin inner needles streaking down the tunnel (parallax) — kept off the
           axis and aligned with the flight path so they never block the view */}
@@ -844,11 +1000,12 @@ function CrystalTunnel({ mobile }: { mobile: boolean }) {
         count={mobile ? 70 : 130}
         rMin={5}
         rMax={12}
-        geoScale={[0.14, 0.14, 2.4]}
-        scaleMin={1.4}
-        scaleAdd={3.6}
-        colors={["#79ffe1", "#46f6ff", "#b6ff5e"]}
-        emissive="#46f6ff"
+        geoScale={[0.12, 0.12, 2.4]}
+        scaleMin={1.2}
+        scaleAdd={3.2}
+        colors={["#4fe8b0", "#36d690", "#b6ff5e", "#ffe45e"]}
+        emissive="#2fbf86"
+        emissiveIntensity={0.55}
         rotSpeed={-0.05}
         orient="along"
       />
@@ -859,9 +1016,9 @@ function CrystalTunnel({ mobile }: { mobile: boolean }) {
 /* ---------------------------------------------------------------- sparkles */
 
 function SparkleField({ mobile }: { mobile: boolean }) {
-  const count = mobile ? 280 : 780;
-  const geo = useMemo(() => {
-    const N = count;
+  // dust + a sparse layer of HOT glints (the bright yellow/cyan pops that give
+  // the reference cave its jewelled depth — bloom picks these up)
+  const sparkleGeo = (N: number, boost: number) => {
     const pos = new Float32Array(N * 3);
     const col = new Float32Array(N * 3);
     const c = new THREE.Color();
@@ -872,17 +1029,20 @@ function SparkleField({ mobile }: { mobile: boolean }) {
       pos[i * 3 + 1] = Math.sin(ang) * r;
       pos[i * 3 + 2] = GRID_END + Math.random() * (CRYSTAL_END - GRID_END);
       const roll = Math.random();
-      c.set(roll > 0.5 ? "#fff36b" : "#79ffe1");
-      col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+      c.set(roll > 0.55 ? "#fff36b" : roll > 0.2 ? "#79ffe1" : "#ffffff");
+      const lum = (0.4 + Math.pow(Math.random(), 2) * 0.8) * boost;
+      col[i * 3] = c.r * lum; col[i * 3 + 1] = c.g * lum; col[i * 3 + 2] = c.b * lum;
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
     g.setAttribute("color", new THREE.BufferAttribute(col, 3));
     return g;
-  }, [count]);
-  const mat = useMemo(() => {
+  };
+  const dustGeo = useMemo(() => sparkleGeo(mobile ? 260 : 700, 1), [mobile]);
+  const glintGeo = useMemo(() => sparkleGeo(mobile ? 60 : 150, 2.6), [mobile]);
+  const mkMat = (size: number) => {
     const m = new THREE.PointsMaterial({
-      size: 0.16, // smaller, round
+      size,
       map: makeDot(),
       sizeAttenuation: true,
       vertexColors: true,
@@ -893,8 +1053,15 @@ function SparkleField({ mobile }: { mobile: boolean }) {
     });
     m.userData.baseOpacity = 1;
     return m;
-  }, []);
-  return <points geometry={geo} material={mat} frustumCulled={false} />;
+  };
+  const dustMat = useMemo(() => mkMat(0.14), []);
+  const glintMat = useMemo(() => mkMat(0.34), []);
+  return (
+    <>
+      <points geometry={dustGeo} material={dustMat} frustumCulled={false} />
+      <points geometry={glintGeo} material={glintMat} frustumCulled={false} />
+    </>
+  );
 }
 
 /* ----------------------------------------------------------- particle dot */
