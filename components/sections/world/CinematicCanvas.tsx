@@ -8,8 +8,11 @@ import {
   Bloom,
   DepthOfField,
   ChromaticAberration,
+  Noise,
+  ToneMapping,
   Vignette,
 } from "@react-three/postprocessing";
+import { BlendFunction, ToneMappingMode } from "postprocessing";
 import CinematicJourney from "@/components/sections/world/CinematicJourney";
 import FirstFrameSignal from "@/components/canvas/FirstFrameSignal";
 import { RadialBlurEffect } from "@/lib/three/RadialBlurEffect";
@@ -71,9 +74,9 @@ export default function CinematicCanvas({
 
       <EffectComposer multisampling={isMobile ? 0 : 4}>
         <Bloom
-          intensity={(isMobile ? 0.7 : 1.1) * (wormhole ? 1.4 : 1)}
-          luminanceThreshold={0.18}
-          luminanceSmoothing={0.5}
+          intensity={(isMobile ? 0.85 : 1.25) * (wormhole ? 1.4 : 1)}
+          luminanceThreshold={0.22}
+          luminanceSmoothing={0.6}
           mipmapBlur
         />
         {wormhole && !reducedMotion ? <WarpPost /> : <></>}
@@ -84,6 +87,14 @@ export default function CinematicCanvas({
           <></>
         )}
         <ChromaticAberration offset={caOffset} radialModulation modulationOffset={0.35} />
+        {/* Filmic response curve — EffectComposer disables the renderer's own
+            tone mapping, so without this the scene ships raw linear output
+            (clipped highlights, flat mids). ACES gives the benchmark's soft
+            highlight rolloff on the suit + glow sources. */}
+        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+        {/* Subtle film grain (after tone mapping) — the reference frames have
+            visible grain which breaks up flat dark gradients */}
+        <Noise premultiply blendFunction={BlendFunction.SCREEN} opacity={0.55} />
         <Vignette eskil={false} offset={0.28} darkness={0.92} />
       </EffectComposer>
     </Canvas>

@@ -45,7 +45,9 @@ export default function AstronautModel() {
         m.receiveShadow = false;
         m.frustumCulled = false;
         const mat = m.material as THREE.MeshStandardMaterial;
-        if (mat && "envMapIntensity" in mat) mat.envMapIntensity = 1.1;
+        // brighter env speculars: with ACES tone mapping in the post chain the
+        // suit needs hotter highlights to read as crisp white fabric/visor
+        if (mat && "envMapIntensity" in mat) mat.envMapIntensity = 1.6;
       }
     });
     return root;
