@@ -64,15 +64,23 @@ export default function CinematicCanvas({
       // Stop rendering the heavy scene + post stack while it's hidden behind an
       // overlay (e.g. the founders letter) — saves a lot of GPU/battery.
       frameloop={paused ? "never" : "always"}
-      gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
-      dpr={dprCap(isMobile)}
+      // context AA is pure waste under an EffectComposer (the composer renders
+      // offscreen and blits a fullscreen quad — the default framebuffer's MSAA
+      // never sees the scene), so keep it off and save the bandwidth
+      gl={{ antialias: false, alpha: false, powerPreference: "high-performance" }}
+      // cap DPR below the global cap: with DOF + bloom + grain on top, the
+      // perceptual difference of 2.0 vs 1.6 is nil but the fragment cost is ~36%
+      dpr={isMobile ? dprCap(true) : [1, 1.6]}
       style={{ position: "fixed", inset: 0, pointerEvents: "none" }}
     >
       <color attach="background" args={["#05060a"]} />
       <FirstFrameSignal />
       <CinematicJourney mobile={isMobile} wormhole={wormhole} />
 
-      <EffectComposer multisampling={isMobile ? 0 : 4}>
+      {/* multisampling 0: MSAA on the fullscreen HDR composer buffer was the
+          single most expensive toggle in the stack, and DOF + bloom + film
+          grain already soften edges — the post chain IS the anti-aliasing */}
+      <EffectComposer multisampling={0}>
         <Bloom
           intensity={(isMobile ? 0.85 : 1.25) * (wormhole ? 1.4 : 1)}
           luminanceThreshold={0.22}
@@ -80,9 +88,15 @@ export default function CinematicCanvas({
           mipmapBlur
         />
         {wormhole && !reducedMotion ? <WarpPost /> : <></>}
-        {/* DOF is the heaviest pass — desktop + full-motion only */}
+        {/* DOF is the heaviest pass — desktop + full-motion only, at reduced
+            internal resolution (it's a blur; half-res bokeh reads identically) */}
         {!isMobile && !reducedMotion ? (
-          <DepthOfField focusDistance={0.012} focalLength={0.05} bokehScale={3.2} />
+          <DepthOfField
+            focusDistance={0.012}
+            focalLength={0.05}
+            bokehScale={3.2}
+            resolutionScale={0.5}
+          />
         ) : (
           <></>
         )}
