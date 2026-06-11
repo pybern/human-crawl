@@ -779,7 +779,7 @@ function GridTunnel({ mobile }: { mobile: boolean }) {
  */
 function DataChips({ mobile }: { mobile: boolean }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const count = mobile ? 260 : 720;
+  const count = mobile ? 220 : 540;
   const s = 9;
   const geo = useMemo(() => new THREE.BoxGeometry(1, 1, 0.05), []);
   const mat = useMemo(() => {
@@ -949,25 +949,20 @@ function CrystalLayer({
 function CrystalTunnel({ mobile }: { mobile: boolean }) {
   return (
     <>
-      {/* green key light inside the cave so the metallic facets actually catch
-          shaped light (instead of relying on flat emissive glow) */}
+      {/* single green key light inside the cave so the metallic facets catch
+          shaped light — one light only: every extra point light multiplies the
+          per-fragment cost of the full-screen shard coverage */}
       <pointLight
-        position={[0, 3, (GRID_END + CRYSTAL_END) / 2]}
-        intensity={160}
-        distance={70}
+        position={[0, 2, (GRID_END + CRYSTAL_END) / 2]}
+        intensity={170}
+        distance={75}
         color="#46ffb0"
-      />
-      <pointLight
-        position={[-4, -5, GRID_END - 12]}
-        intensity={90}
-        distance={50}
-        color="#bfff7a"
       />
       {/* big outer shards forming the cave walls — splayed outward so the centre
           bore (where the astronaut flies) stays clear. Mostly DARK greens (the
           benchmark cave is black with shaped light, not a wall of flat teal) */}
       <CrystalLayer
-        count={mobile ? 100 : 250}
+        count={mobile ? 90 : 210}
         rMin={8.5}
         rMax={18}
         geoScale={[0.28, 0.28, 1]}
@@ -982,7 +977,7 @@ function CrystalTunnel({ mobile }: { mobile: boolean }) {
       {/* long truss beams running down the tunnel — the benchmark cave reads as
           scaffold/lattice structure, so cross the walls with thin members */}
       <CrystalLayer
-        count={mobile ? 60 : 150}
+        count={mobile ? 50 : 120}
         rMin={7}
         rMax={16}
         geoScale={[0.07, 0.07, 5]}
